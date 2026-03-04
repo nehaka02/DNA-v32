@@ -1,7 +1,5 @@
 # Qt Creator
-*.pro.user
-*.pro.user.*
-*.autosave
+.qtcreator/
 
 # Build artifacts
 *.o
