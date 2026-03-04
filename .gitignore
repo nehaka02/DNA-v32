@@ -1,0 +1,15 @@
+# Qt Creator
+*.pro.user
+*.pro.user.*
+*.autosave
+
+# Build artifacts
+*.o
+*.obj
+*.so
+*.dll
+*.exe
+build-*/
+
+# Logs
+*.log
