@@ -7,7 +7,7 @@
 *.so
 *.dll
 *.exe
-build-*/
+build/
 
 # Logs
 *.log
