@@ -1,2 +1,0 @@
-set(__QT_DEPLOY_TARGET_DNA-v32_FILE /Users/nehaa/DNA-v32/build/Qt_6_10_2_for_macOS-Debug/DNA-v32)
-set(__QT_DEPLOY_TARGET_DNA-v32_TYPE EXECUTABLE)

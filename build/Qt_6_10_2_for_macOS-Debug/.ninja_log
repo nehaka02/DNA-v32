@@ -1,9 +1,0 @@
-# ninja log v6
-0	41	1772647102911605430	DNA-v32_autogen/timestamp	31f975c74a13ed77
-0	41	1772647102911605430	DNA-v32_autogen/mocs_compilation.cpp	31f975c74a13ed77
-0	41	1772647102911605430	/Users/nehaa/DNA-v32/build/Qt_6_10_2_for_macOS-Debug/DNA-v32_autogen/timestamp	31f975c74a13ed77
-0	41	1772647102911605430	/Users/nehaa/DNA-v32/build/Qt_6_10_2_for_macOS-Debug/DNA-v32_autogen/mocs_compilation.cpp	31f975c74a13ed77
-42	63	1772647102918200733	CMakeFiles/DNA-v32.dir/DNA-v32_autogen/mocs_compilation.cpp.o	26c41b22ef761d6
-42	67	1772647102918488483	CMakeFiles/DNA-v32.dir/memory.cpp.o	8dfcc3838d1052f1
-42	456	1772647102918381858	CMakeFiles/DNA-v32.dir/main.cpp.o	b9811d89b0b1fff
-457	490	1772647103333991578	DNA-v32	1f365d2d32a76422

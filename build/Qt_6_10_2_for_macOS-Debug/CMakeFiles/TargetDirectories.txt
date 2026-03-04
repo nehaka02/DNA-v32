@@ -1,9 +1,0 @@
-/Users/nehaa/DNA-v32/build/Qt_6_10_2_for_macOS-Debug/CMakeFiles/DNA-v32.dir
-/Users/nehaa/DNA-v32/build/Qt_6_10_2_for_macOS-Debug/CMakeFiles/edit_cache.dir
-/Users/nehaa/DNA-v32/build/Qt_6_10_2_for_macOS-Debug/CMakeFiles/rebuild_cache.dir
-/Users/nehaa/DNA-v32/build/Qt_6_10_2_for_macOS-Debug/CMakeFiles/list_install_components.dir
-/Users/nehaa/DNA-v32/build/Qt_6_10_2_for_macOS-Debug/CMakeFiles/install.dir
-/Users/nehaa/DNA-v32/build/Qt_6_10_2_for_macOS-Debug/CMakeFiles/install/local.dir
-/Users/nehaa/DNA-v32/build/Qt_6_10_2_for_macOS-Debug/CMakeFiles/install/strip.dir
-/Users/nehaa/DNA-v32/build/Qt_6_10_2_for_macOS-Debug/CMakeFiles/DNA-v32_autogen_timestamp_deps.dir
-/Users/nehaa/DNA-v32/build/Qt_6_10_2_for_macOS-Debug/CMakeFiles/DNA-v32_autogen.dir
