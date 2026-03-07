@@ -4,19 +4,12 @@
 class Memory
 {
 public:
-    int memory[32768][2];
-    int cache[8][7];
 
-    int fClock;
-    int mClock;
-
-    int prevWriteAddr;
-    int prevWriteStage;
+    //memory has 4 words per line
+    //memory address is calculated implicitly and doesn't need to be physically stored
+    int dram[8192][4];
 
     Memory();
-    void writeMemory(int address, int data, int pipelineStage);
-    int readMemory(int address, int pipelineStage);
-    int viewMemory(int address);
 
 };
 
