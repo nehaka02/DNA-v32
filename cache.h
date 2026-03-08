@@ -8,7 +8,7 @@ class Cache
 public:
 
     //cache has a pointer to dram
-    //cache memory contains: tag, index, valid, dirty, 4 offsets
+    //cache memory contains: tag, index, dirty, valid, 4 offsets
     int cache_memory[8][8];
     Memory* memory;
 
@@ -22,6 +22,7 @@ public:
     int viewMemory(int address);
     void editCache(int address, int data);
     void printCache();
+    void printMemory(int startAddress, int endAddress);
 private:
     void decodeAddress(int address, int &line, int &index, int &offset, int &tag);
 };

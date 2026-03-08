@@ -85,13 +85,8 @@ int main(int argc, char *argv[])
         std::cout << "View command format: V [memory address]" << std::endl;
     }
 
-    char* arg1 = argv[1];
-    char switchKey = *arg1;
-    int memoryAddress;
-
     Memory newMemory;
     Cache* newCache = new Cache(&newMemory);
-    memoryAddress = std::stoi(argv[2]);
 
     while (1) {
         std::string userInput;
@@ -114,61 +109,6 @@ int main(int argc, char *argv[])
         parseInput(tokens, newCache);
 
     }
-    // char* arg1 = argv[1];
-    // char switchKey = *arg1;
-    // int memoryAddress;
-
-    // Memory newMemory;
-    // Cache* newCache = new Cache(&newMemory);
-    // memoryAddress = std::stoi(argv[2]);
-
-    // switch(switchKey) {
-
-    //     case 'W':{
-    //         if(argc != 5){
-    //             std::cout << "Write command format: W [memory address][data][pipeline stage]" << std::endl;
-    //         }
-    //         int data = std::stoi(argv[3]);
-    //         int pipelineStage = std::stoi(argv[4]);
-
-    //         std::cout << "Writing to memory..." << std::endl;
-    //         while(newCache->writeMemory(memoryAddress, data, pipelineStage) != "Done"){
-    //             newCache->clock++;
-    //         }
-    //         printf("%d was written to %d", data, memoryAddress);
-    //         break;
-    //     }
-
-    //     case 'R':{
-    //         if (argc!=4){
-    //             std::cout << "Read command format: R [memory address][pipeline stage]" << std::endl;
-    //         }
-    //         int pipelineStage = std::stoi(argv[3]);
-
-    //         std::cout << "Reading from memory..." << std::endl;
-    //         std::string readValue;
-    //         while((readValue = newCache->readMemory(memoryAddress, pipelineStage)) != "Done"){
-    //             newCache->clock++;
-    //         }
-    //         printf("%s was read from %d", readValue.c_str(), memoryAddress);
-    //         break;
-    //     }
-
-    //     case 'V':{
-    //         if (argc!=3){
-    //             std::cout << "View command format: V [memory address]" << std::endl;
-    //         }
-    //         std::cout << "Viewing memory..." << std::endl;
-    //         int viewedValue = newCache->viewMemory(memoryAddress);
-    //         printf("%d was viewed from %d", viewedValue, memoryAddress);
-    //         break;
-    //     }
-    //     default:
-    //         std::cout << "Command Menu:" << std::endl;
-    //         std::cout << "Write command format: W [memory address][data][pipeline stage]" << std::endl;
-    //         std::cout << "Read command format: R [memory address][pipeline stage]" << std::endl;
-    //         std::cout << "View command format: V [memory address]" << std::endl;
-    // }
 
     return 0;
 }

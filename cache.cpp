@@ -163,3 +163,22 @@ void Cache::printCache(){
     }
     std::cout << "=======================" << std::endl;
 }
+
+// For demo, only use the first 9 lines of memory
+void Cache:: printMemory(int startLine, int endLine) {
+    std::cout << "===== DRAM =====" << std::endl;
+    std::cout << std::left
+              << std::setw(6)  << "Address"
+              << std::setw(30) << "Words [0,1,2,3]" << std::endl;
+    std::cout << std::string(58, '-') << std::endl;
+
+    for(int i = startLine; i < endLine; i++){
+        std::cout << std::left
+                  << std::setw(8) << i
+                  << "[" << memory->dram[i][0] << ", "
+                  << memory->dram[i][1] << ", "
+                  << memory->dram[i][2] << ", "
+                  << memory->dram[i][3] << "]" << std::endl;
+    }
+    std::cout << "========================" << std::endl;
+}
