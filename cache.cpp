@@ -1,4 +1,6 @@
 #include "cache.h"
+#include <iostream>
+#include <iomanip>
 
 Cache::Cache(Memory* memory) {
     this->dramDelay=0;
@@ -9,10 +11,61 @@ Cache::Cache(Memory* memory) {
     this->clock=0;
 }
 
+//FIXME: Refractor memory to cache mapping into a function call?
+void Cache::decodeAddress(int address, int &line, int &index, int &offset, int &tag) {
+    line   = (address / 4) % 8192;
+    index  = line % 8;
+    offset = address % 4;
+    tag    = line / 8;
+}
+
 // this method needs to check cache first
 // if address doesn't exist in cache, we need to load from memory and possibly evict a line from cache
  std::string Cache::readMemory(int address, int pipelineStage){
-    return "";
+    // Currently servicing another pipeline stage
+    if(this->currentlyServicing != 0 && this->currentlyServicing != pipelineStage) {
+        return "Wait";
+    }
+    else {
+        //Currently servicing no pipeline stage -> service requested pipeline stage
+        if(this->currentlyServicing == 0){
+            this->dramDelay = 3;
+            this->currentlyServicing=pipelineStage;
+            //return "Wait";
+        }
+
+        // Map out values
+        int line, index, offset, tag;
+        decodeAddress(address, line, index, offset, tag);
+
+        // Cache hit: If valid data found in cache, 0 delay, return value directly
+        if (this->cache_memory[index][2] == 1 && this->cache_memory[index][0] == tag) {
+            this->dramDelay = 0;
+            this->currentlyServicing = 0;
+            return std::to_string(this->cache_memory[index][4 + offset]);
+        }
+        // No valid memory found in cache, load from memory and direct eviction from cache
+        // Remember 3 tick delay
+        else if (this->currentlyServicing == pipelineStage && this->dramDelay != 0) {
+            this->dramDelay -= 1;
+            return "Wait";
+        }
+
+        //Delay has expired for requested pipeline stage (i.e., dramClock=0)
+        else {
+            // Update value in cache with value from memory (Don't forget tag, idx, valid, dirty)
+            this->cache_memory[index][0] = tag;
+            this->cache_memory[index][2] = 0; // Dirty bit
+            this->cache_memory[index][3] = 1; // Valid bit
+            // Update all 4 blocks in cache
+            for (int i = 0; i < 4; i ++) {
+                this->cache_memory[index][4 + offset] = this->memory->dram[line][i];
+            }
+            this->currentlyServicing = 0;
+            return std::to_string(this->cache_memory[index][4 + offset]);
+
+        }
+    }
 }
 
 std::string Cache::writeMemory(int address, int data, int pipelineStage){
@@ -63,6 +116,50 @@ std::string Cache::writeMemory(int address, int data, int pipelineStage){
 
 // side door interface
 int Cache::viewMemory(int address){
-    return 0;
+    // Map out values
+    int line, index, offset, tag;
+    decodeAddress(address, line, index, offset, tag);
+    std::cout << "Address : " << address                    << std::endl;
+    std::cout << "Tag     : " << cache_memory[index][0]     << std::endl;
+    std::cout << "Index   : " << index                      << std::endl;
+    std::cout << "Valid   : " << cache_memory[index][2]     << std::endl;
+    std::cout << "Dirty   : " << cache_memory[index][3]     << std::endl;
+    std::cout << "Offset  : " << offset                     << std::endl;
+    std::cout << "Data    : " << cache_memory[index][4 + offset] << std::endl;
 
+    return cache_memory[index][4 + offset];
+
+}
+
+// Edit cache? (set dirty bit to 1 after edit)
+void Cache::editCache(int address, int data) {
+    int line, index, offset, tag;
+    decodeAddress(address, line, index, offset, tag);
+    this->cache_memory[index][4 + offset] = data;
+}
+
+
+// Print entire cache?
+void Cache::printCache(){
+    std::cout << "===== CACHE STATE =====" << std::endl;
+    std::cout << std::left
+              << std::setw(6)  << "Line"
+              << std::setw(6)  << "Tag"
+              << std::setw(8)  << "Valid"
+              << std::setw(8)  << "Dirty"
+              << std::setw(30) << "Words [0,1,2,3]" << std::endl;
+    std::cout << std::string(58, '-') << std::endl;
+
+    for(int i = 0; i < 8; i++){
+        std::cout << std::left
+                  << std::setw(6)  << i
+                  << std::setw(6)  << cache_memory[i][0]
+                  << std::setw(8)  << cache_memory[i][2]
+                  << std::setw(8)  << cache_memory[i][3]
+                  << "[" << cache_memory[i][4] << ", "
+                  << cache_memory[i][5] << ", "
+                  << cache_memory[i][6] << ", "
+                  << cache_memory[i][7] << "]" << std::endl;
+    }
+    std::cout << "=======================" << std::endl;
 }

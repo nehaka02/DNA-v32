@@ -20,6 +20,10 @@ public:
     std::string writeMemory(int address, int data, int pipelineStage);
     std::string readMemory(int address, int pipelineStage);
     int viewMemory(int address);
+    void editCache(int address, int data);
+    void printCache();
+private:
+    void decodeAddress(int address, int &line, int &index, int &offset, int &tag);
 };
 
 #endif // CACHE_H
