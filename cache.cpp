@@ -42,7 +42,7 @@ void Cache::decodeAddress(int address, int &line, int &index, int &offset, int &
         if (this->cache_memory[index][2] == 1 && this->cache_memory[index][0] == tag) {
             this->dramDelay = 0;
             this->currentlyServicing = 0;
-            return std::to_string(this->cache_memory[index][4 + offset]);
+            return "Done: " + std::to_string(this->cache_memory[index][4 + offset]);
         }
         // No valid memory found in cache, load from memory and direct eviction from cache
         // Remember 3 tick delay
@@ -59,10 +59,10 @@ void Cache::decodeAddress(int address, int &line, int &index, int &offset, int &
             this->cache_memory[index][3] = 1; // Valid bit
             // Update all 4 blocks in cache
             for (int i = 0; i < 4; i ++) {
-                this->cache_memory[index][4 + offset] = this->memory->dram[line][i];
+                this->cache_memory[index][4 + i] = this->memory->dram[line][i];
             }
             this->currentlyServicing = 0;
-            return std::to_string(this->cache_memory[index][4 + offset]);
+            return "Done: " + std::to_string(this->cache_memory[index][4 + offset]);
 
         }
     }
@@ -88,10 +88,9 @@ std::string Cache::writeMemory(int address, int data, int pipelineStage){
         //Delay has expired for requested pipeline stage (i.e., dramClock=0)
         else{
 
-            int line   = (address / 4) % 8192;  // which DRAM line
-            int index  = line % 8;              // which cache slot
-            int offset = address % 4;           // which word within line
-            int tag    = line / 8;              // tag
+            // Map out values
+            int line, index, offset, tag;
+            decodeAddress(address, line, index, offset, tag);
 
             //write hit (write through)
             //must check valid bit

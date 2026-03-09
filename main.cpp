@@ -31,7 +31,7 @@ void parseInput(std::vector<std::string> tokens, Cache* newCache) {
             while(newCache->writeMemory(memoryAddress, data, pipelineStage) != "Done"){
                 newCache->clock++;
             }
-            printf("%d was written to %d", data, memoryAddress);
+            printf("%d was written to %d\n", data, memoryAddress);
             break;
         }
 
@@ -44,10 +44,15 @@ void parseInput(std::vector<std::string> tokens, Cache* newCache) {
             std::cout << "Reading from memory..." << std::endl;
             int memoryAddress = std::stoi(tokens[1]);
             std::string readValue;
-            while((readValue = newCache->readMemory(memoryAddress, pipelineStage)) != "Done"){
+
+            while(true){
+                readValue = newCache->readMemory(memoryAddress, pipelineStage);
+                if (readValue.rfind("Done:", 0) == 0) {  // starts with "Done:"
+                    break;
+                }
                 newCache->clock++;
             }
-            printf("%s was read from %d", readValue.c_str(), memoryAddress);
+            printf("%s was read from %d\n", readValue.c_str(), memoryAddress);
             break;
         }
 
@@ -58,7 +63,7 @@ void parseInput(std::vector<std::string> tokens, Cache* newCache) {
             std::cout << "Viewing memory..." << std::endl;
             int memoryAddress = std::stoi(tokens[1]);
             int viewedValue = newCache->viewMemory(memoryAddress);
-            printf("%d was viewed from %d", viewedValue, memoryAddress);
+            printf("%d was viewed from %d\n", viewedValue, memoryAddress);
             break;
         }
         default:
