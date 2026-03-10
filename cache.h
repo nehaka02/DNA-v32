@@ -22,7 +22,7 @@ public:
     int viewMemory(int address);
     void editCache(int address, int data);
     void printCache();
-    void printMemory(int startAddress, int endAddress);
+    void printMemory(int startLine, int endLine);
 private:
     void decodeAddress(int address, int &line, int &index, int &offset, int &tag);
 };

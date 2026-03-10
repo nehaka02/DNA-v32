@@ -39,15 +39,17 @@ void Cache::decodeAddress(int address, int &line, int &index, int &offset, int &
         decodeAddress(address, line, index, offset, tag);
 
         // Cache hit: If valid data found in cache, 0 delay, return value directly
-        if (this->cache_memory[index][2] == 1 && this->cache_memory[index][0] == tag) {
+        if (this->cache_memory[index][3] == 1 && this->cache_memory[index][0] == tag) {
             this->dramDelay = 0;
             this->currentlyServicing = 0;
+            std::cout << "Cache Hit!" << std::endl;
             return "Done: " + std::to_string(this->cache_memory[index][4 + offset]);
         }
         // No valid memory found in cache, load from memory and direct eviction from cache
         // Remember 3 tick delay
         else if (this->currentlyServicing == pipelineStage && this->dramDelay != 0) {
             this->dramDelay -= 1;
+            std::cout << "Cache miss, loading from memory... Wait" << std::endl;
             return "Wait";
         }
 
@@ -94,7 +96,7 @@ std::string Cache::writeMemory(int address, int data, int pipelineStage){
 
             //write hit (write through)
             //must check valid bit
-            if(this->cache_memory[index][0] == tag && this->cache_memory[index][2] == 1){
+            if(this->cache_memory[index][0] == tag && this->cache_memory[index][3] == 1){
                 //set dirty bit to 0 and valid bit to 1
                 this->cache_memory[index][2] = 0;
                 this->cache_memory[index][3] = 1;
@@ -121,8 +123,8 @@ int Cache::viewMemory(int address){
     std::cout << "Address : " << address                    << std::endl;
     std::cout << "Tag     : " << cache_memory[index][0]     << std::endl;
     std::cout << "Index   : " << index                      << std::endl;
-    std::cout << "Valid   : " << cache_memory[index][2]     << std::endl;
-    std::cout << "Dirty   : " << cache_memory[index][3]     << std::endl;
+    std::cout << "Dirty   : " << cache_memory[index][2]     << std::endl;
+    std::cout << "Valid   : " << cache_memory[index][3]     << std::endl;
     std::cout << "Offset  : " << offset                     << std::endl;
     std::cout << "Data    : " << cache_memory[index][4 + offset] << std::endl;
 
@@ -144,8 +146,8 @@ void Cache::printCache(){
     std::cout << std::left
               << std::setw(6)  << "Line"
               << std::setw(6)  << "Tag"
-              << std::setw(8)  << "Valid"
               << std::setw(8)  << "Dirty"
+              << std::setw(8)  << "Valid"
               << std::setw(30) << "Words [0,1,2,3]" << std::endl;
     std::cout << std::string(58, '-') << std::endl;
 
@@ -161,17 +163,19 @@ void Cache::printCache(){
                   << cache_memory[i][7] << "]" << std::endl;
     }
     std::cout << "=======================" << std::endl;
+    std::cout << std::endl;
 }
+
 
 // For demo, only use the first 9 lines of memory
 void Cache:: printMemory(int startLine, int endLine) {
     std::cout << "===== DRAM =====" << std::endl;
     std::cout << std::left
-              << std::setw(6)  << "Address"
+              << std::setw(15)  << "Address"
               << std::setw(30) << "Words [0,1,2,3]" << std::endl;
     std::cout << std::string(58, '-') << std::endl;
 
-    for(int i = startLine; i < endLine; i++){
+    for(int i = startLine; i <= endLine; i++){
         std::cout << std::left
                   << std::setw(8) << i
                   << "[" << memory->dram[i][0] << ", "
@@ -180,4 +184,5 @@ void Cache:: printMemory(int startLine, int endLine) {
                   << memory->dram[i][3] << "]" << std::endl;
     }
     std::cout << "========================" << std::endl;
+    std::cout << std::endl;
 }

@@ -1,0 +1,261 @@
+DNA Simulator Running...
+Command Formats
+Write command format: W [memory address][data][pipeline stage]
+Read command format: R [memory address][pipeline stage]
+View cache command format: V [1]
+View cache block command format: V [1] [memory address]
+View RAM range command format: V [0] [start line] [end line]
+
+
+Looking for file in: "/Users/Liyuzeng_1/Documents/CS535/DNA-v32"
+Command: V 1
+View cache...
+===== CACHE STATE =====
+Line  Tag   Dirty   Valid   Words [0,1,2,3]               
+----------------------------------------------------------
+0     0     0       0       [0, 0, 0, 0]
+1     0     0       0       [0, 0, 0, 0]
+2     0     0       0       [0, 0, 0, 0]
+3     0     0       0       [0, 0, 0, 0]
+4     0     0       0       [0, 0, 0, 0]
+5     0     0       0       [0, 0, 0, 0]
+6     0     0       0       [0, 0, 0, 0]
+7     0     0       0       [0, 0, 0, 0]
+=======================
+
+Command: V 0 0 8
+View RAM...start line: 0, end line: 8
+===== DRAM =====
+Address        Words [0,1,2,3]               
+----------------------------------------------------------
+0       [0, 0, 0, 0]
+1       [0, 0, 0, 0]
+2       [0, 0, 0, 0]
+3       [0, 0, 0, 0]
+4       [0, 0, 0, 0]
+5       [0, 0, 0, 0]
+6       [0, 0, 0, 0]
+7       [0, 0, 0, 0]
+8       [0, 0, 0, 0]
+========================
+
+// README: Both cache and RAM starts out empty
+
+
+
+Command: W 1 20 4
+Writing to memory...
+20 was stored to cache and RAM, address 0b000000000000001
+Clock = 4
+
+Command: V 0 0 8
+View RAM...start line: 0, end line: 8
+===== DRAM =====
+Address        Words [0,1,2,3]               
+----------------------------------------------------------
+0       [0, 20, 0, 0]
+1       [0, 0, 0, 0]
+2       [0, 0, 0, 0]
+3       [0, 0, 0, 0]
+4       [0, 0, 0, 0]
+5       [0, 0, 0, 0]
+6       [0, 0, 0, 0]
+7       [0, 0, 0, 0]
+8       [0, 0, 0, 0]
+========================
+
+Command: V 1
+View cache...
+===== CACHE STATE =====
+Line  Tag   Dirty   Valid   Words [0,1,2,3]               
+----------------------------------------------------------
+0     0     0       0       [0, 0, 0, 0]
+1     0     0       0       [0, 0, 0, 0]
+2     0     0       0       [0, 0, 0, 0]
+3     0     0       0       [0, 0, 0, 0]
+4     0     0       0       [0, 0, 0, 0]
+5     0     0       0       [0, 0, 0, 0]
+6     0     0       0       [0, 0, 0, 0]
+7     0     0       0       [0, 0, 0, 0]
+=======================
+
+
+// README: Writing to memory, only update memory since no valid location in cache
+
+
+
+
+Command: R 1 4
+Reading from memory...
+Cache miss, loading from memory... Wait
+Cache miss, loading from memory... Wait
+Cache miss, loading from memory... Wait
+Done: 20 was read from memory, address 0b000000000000001
+Clock = 7
+
+
+Command: V 1
+View cache...
+===== CACHE STATE =====
+Line  Tag   Dirty   Valid   Words [0,1,2,3]               
+----------------------------------------------------------
+0     0     0       1       [0, 20, 0, 0]
+1     0     0       0       [0, 0, 0, 0]
+2     0     0       0       [0, 0, 0, 0]
+3     0     0       0       [0, 0, 0, 0]
+4     0     0       0       [0, 0, 0, 0]
+5     0     0       0       [0, 0, 0, 0]
+6     0     0       0       [0, 0, 0, 0]
+7     0     0       0       [0, 0, 0, 0]
+=======================
+
+Command: W 0 19 4
+Writing to memory...
+19 was stored to cache and RAM, address 0b000000000000000
+Clock = 11
+
+Command: W 2 21 4
+Writing to memory...
+21 was stored to cache and RAM, address 0b000000000000010
+Clock = 15
+
+Command: W 3 22 4
+Writing to memory...
+22 was stored to cache and RAM, address 0b000000000000011
+Clock = 19
+
+Command: W 10 100 4
+Writing to memory...
+100 was stored to cache and RAM, address 0b000000000001010
+Clock = 23
+
+Command: R 2 4
+Reading from memory...
+Cache miss, loading from memory... Wait
+Cache miss, loading from memory... Wait
+Cache miss, loading from memory... Wait
+Done: 21 was read from memory, address 0b000000000000010
+Clock = 26
+
+Command: V 1
+View cache...
+===== CACHE STATE =====
+Line  Tag   Dirty   Valid   Words [0,1,2,3]               
+----------------------------------------------------------
+0     0     0       1       [19, 20, 21, 22]
+1     0     0       0       [0, 0, 0, 0]
+2     0     0       0       [0, 0, 0, 0]
+3     0     0       0       [0, 0, 0, 0]
+4     0     0       0       [0, 0, 0, 0]
+5     0     0       0       [0, 0, 0, 0]
+6     0     0       0       [0, 0, 0, 0]
+7     0     0       0       [0, 0, 0, 0]
+=======================
+
+Command: V 0 0 8
+View RAM...start line: 0, end line: 8
+===== DRAM =====
+Address        Words [0,1,2,3]               
+----------------------------------------------------------
+0       [19, 20, 21, 22]
+1       [0, 0, 0, 0]
+2       [0, 0, 100, 0]
+3       [0, 0, 0, 0]
+4       [0, 0, 0, 0]
+5       [0, 0, 0, 0]
+6       [0, 0, 0, 0]
+7       [0, 0, 0, 0]
+8       [0, 0, 0, 0]
+========================
+
+Command: R 10 4
+Reading from memory...
+Cache miss, loading from memory... Wait
+Cache miss, loading from memory... Wait
+Cache miss, loading from memory... Wait
+Done: 100 was read from memory, address 0b000000000001010
+Clock = 29
+
+Command: V 1
+View cache...
+===== CACHE STATE =====
+Line  Tag   Dirty   Valid   Words [0,1,2,3]               
+----------------------------------------------------------
+0     0     0       1       [19, 20, 21, 22]
+1     0     0       0       [0, 0, 0, 0]
+2     0     0       1       [0, 0, 100, 0]
+3     0     0       0       [0, 0, 0, 0]
+4     0     0       0       [0, 0, 0, 0]
+5     0     0       0       [0, 0, 0, 0]
+6     0     0       0       [0, 0, 0, 0]
+7     0     0       0       [0, 0, 0, 0]
+=======================
+
+Command: W 33 1 4
+Writing to memory...
+1 was stored to cache and RAM, address 0b000000000100001
+Clock = 33
+
+Command: R 33 4
+Reading from memory...
+Cache miss, loading from memory... Wait
+Cache miss, loading from memory... Wait
+Cache miss, loading from memory... Wait
+Done: 1 was read from memory, address 0b000000000100001
+Clock = 36
+
+Command: V 1
+View cache...
+===== CACHE STATE =====
+Line  Tag   Dirty   Valid   Words [0,1,2,3]               
+----------------------------------------------------------
+0     1     0       1       [0, 1, 0, 0]
+1     0     0       0       [0, 0, 0, 0]
+2     0     0       1       [0, 0, 100, 0]
+3     0     0       0       [0, 0, 0, 0]
+4     0     0       0       [0, 0, 0, 0]
+5     0     0       0       [0, 0, 0, 0]
+6     0     0       0       [0, 0, 0, 0]
+7     0     0       0       [0, 0, 0, 0]
+=======================
+
+Command: V 0 0 8
+View RAM...start line: 0, end line: 8
+===== DRAM =====
+Address        Words [0,1,2,3]               
+----------------------------------------------------------
+0       [19, 20, 21, 22]
+1       [0, 0, 0, 0]
+2       [0, 0, 100, 0]
+3       [0, 0, 0, 0]
+4       [0, 0, 0, 0]
+5       [0, 0, 0, 0]
+6       [0, 0, 0, 0]
+7       [0, 0, 0, 0]
+8       [0, 1, 0, 0]
+========================
+
+Command: R 2 4
+Reading from memory...
+Cache miss, loading from memory... Wait
+Cache miss, loading from memory... Wait
+Cache miss, loading from memory... Wait
+Done: 21 was read from memory, address 0b000000000000010
+Clock = 39
+
+Command: V 1
+View cache...
+===== CACHE STATE =====
+Line  Tag   Dirty   Valid   Words [0,1,2,3]               
+----------------------------------------------------------
+0     0     0       1       [19, 20, 21, 22]
+1     0     0       0       [0, 0, 0, 0]
+2     0     0       1       [0, 0, 100, 0]
+3     0     0       0       [0, 0, 0, 0]
+4     0     0       0       [0, 0, 0, 0]
+5     0     0       0       [0, 0, 0, 0]
+6     0     0       0       [0, 0, 0, 0]
+7     0     0       0       [0, 0, 0, 0]
+=======================
+
+16:22:18: The command "/Users/Liyuzeng_1/Qt/Qt Creator.app/Contents/Resources/libexec/disclaim /Users/Liyuzeng_1/Documents/CS535/DNA-v32/build/Qt_6_10_2_for_macOS-Debug/DNA-v32" finished successfully.
