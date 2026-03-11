@@ -24,15 +24,9 @@ void Cache::decodeAddress(int address, int &line, int &index, int &offset, int &
  std::string Cache::readMemory(int address, int pipelineStage){
     // Currently servicing another pipeline stage
     if(this->currentlyServicing != 0 && this->currentlyServicing != pipelineStage) {
-        return "Wait";
+        return "Wait: memory is currently servicing another pipeline stage";
     }
     else {
-        //Currently servicing no pipeline stage -> service requested pipeline stage
-        if(this->currentlyServicing == 0){
-            this->dramDelay = 3;
-            this->currentlyServicing=pipelineStage;
-            //return "Wait";
-        }
 
         // Map out values
         int line, index, offset, tag;
@@ -45,6 +39,15 @@ void Cache::decodeAddress(int address, int &line, int &index, int &offset, int &
             std::cout << "Cache Hit!" << std::endl;
             return "Done: " + std::to_string(this->cache_memory[index][4 + offset]);
         }
+
+        //Currently servicing no pipeline stage -> service requested pipeline stage
+        if(this->currentlyServicing == 0){
+            this->dramDelay = 3;
+            this->currentlyServicing=pipelineStage;
+            std::cout << "Cache miss, loading from memory... Wait" << std::endl;
+            return "Wait";
+        }
+
         // No valid memory found in cache, load from memory and direct eviction from cache
         // Remember 3 tick delay
         else if (this->currentlyServicing == pipelineStage && this->dramDelay != 0) {
@@ -72,7 +75,7 @@ void Cache::decodeAddress(int address, int &line, int &index, int &offset, int &
 
 std::string Cache::writeMemory(int address, int data, int pipelineStage){
     if(this->currentlyServicing != 0 && this->currentlyServicing != pipelineStage){
-        return "Wait";
+        return "Wait: memory is currently servicing another pipeline stage";
     }
     else{
         //Currently servicing no pipeline stage -> service requested pipeline stage
@@ -80,16 +83,17 @@ std::string Cache::writeMemory(int address, int data, int pipelineStage){
         if(this->currentlyServicing == 0){
             this->currentlyServicing=pipelineStage;
             this->dramDelay=3;
+            std::cout << "Writing to memory... Wait" << std::endl;
             return "Wait";
         }
         //Currently servicing requested pipeline stage but delay has not expired
         else if(this->currentlyServicing == pipelineStage && this->dramDelay!=0){
             this->dramDelay -= 1;
+            std::cout << "Writing to memory... Wait" << std::endl;
             return "Wait";
         }
         //Delay has expired for requested pipeline stage (i.e., dramClock=0)
         else{
-
             // Map out values
             int line, index, offset, tag;
             decodeAddress(address, line, index, offset, tag);
