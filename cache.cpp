@@ -44,7 +44,7 @@ void Cache::decodeAddress(int address, int &line, int &index, int &offset, int &
         if(this->currentlyServicing == 0){
             this->dramDelay = 3;
             this->currentlyServicing=pipelineStage;
-            std::cout << "Cache miss, loading from memory... Wait" << std::endl;
+            std::cout << "Cache miss. Starting new access cycle... Wait" << std::endl;
             return "Wait";
         }
 
@@ -83,7 +83,7 @@ std::string Cache::writeMemory(int address, int data, int pipelineStage){
         if(this->currentlyServicing == 0){
             this->currentlyServicing=pipelineStage;
             this->dramDelay=3;
-            std::cout << "Writing to memory... Wait" << std::endl;
+            std::cout << "Starting new access cycle... Wait" << std::endl;
             return "Wait";
         }
         //Currently servicing requested pipeline stage but delay has not expired
