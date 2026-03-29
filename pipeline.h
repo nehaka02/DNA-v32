@@ -10,11 +10,11 @@ struct ControlBlock {
 // note that all fields don't need to be used for every instruction
 // scalars are one-element vectors
 struct InstructionObject {
-    enum class Type { Scalar, Vector } type;
     std::vector<int> src1v;
     std::vector<int> src2v;
     std::vector<int> destv;
     int address    = 0;
+    int branch_offset = 0;
     int bin_instr  = 0;
     int type_code  = 0;
     int opcode     = 0;
