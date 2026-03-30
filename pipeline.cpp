@@ -123,3 +123,15 @@ void Pipeline::decode(){
 
     }
 }
+
+void Pipeline::execute(){
+
+}
+
+void Pipeline::memory_access(){
+
+}
+
+void Pipeline::write_back(){
+
+}

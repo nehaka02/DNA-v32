@@ -20,6 +20,7 @@ struct InstructionObject {
     int opcode     = 0;
     int immediate  = 0;
     int vlen       = 0;
+    int result     = 0;
 };
 
 
@@ -42,6 +43,11 @@ public:
 
     void fetch(std::string memoryAddress);
     void decode();
+    void execute();
+    void memory_access();
+    void write_back();
+private :
+    int ALU_helper(int opcode, int a, int b);
 
 };
 
