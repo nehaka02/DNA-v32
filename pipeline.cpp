@@ -33,35 +33,46 @@ void Pipeline::fetch(std::string memoryAddress){
 void Pipeline::decode(){
     // get 2 most significant bits
     int bin = this->dInstr.bin_instr;
+    int type_code = bin >> 30;
+    this->dInstr.type_code = type_code;
 
-    switch(bin >> 30){
+    switch(type_code){
         // ALU Ops
         case 0:{
             int opcode = (bin >> 25) & 0b11111;
+            this->dInstr.opcode = opcode;
             // integer add
             if(opcode == 0){
                 // reminder these are all register numbers
                 int dest = (bin >> 21) & 0b1111;
                 int src1 = (bin >> 17) & 0b1111;
                 int src2 = (bin >> 13) & 0b1111;
-                if (!pendRegs.r[dest].empty() || !pendRegs.r[src1].empty() || !pendRegs.r[src2].empty()) {
+                if (pendRegs.r[dest] != 0 || pendRegs.r[src1] != 0 || pendRegs.r[src2] != 0) {
                     this->dcontrol.is_stalled = true;
                     return;
                 }
+
                 this->dInstr.destv.push_back(intRegs.r[dest]);
                 this->dInstr.src1v.push_back(intRegs.r[src1]);
                 this->dInstr.src2v.push_back(intRegs.r[src2]);
+
+                pendRegs.r[dest]++;
+                pendRegs.r[src1]++;
+                pendRegs.r[src2]++;
 
             }
             // compare
             if(opcode == 28){
                 int src1 = (bin >> 17) & 0b1111;
                 int src2 = (bin >> 13) & 0b1111;
-                while (!pendRegs.r[src1].empty() || !pendRegs.r[src2].empty()) {
+                while (pendRegs.r[src1] != 0 || pendRegs.r[src2] != 0) {
                     continue;
                 }
                 this->dInstr.src1v.push_back(intRegs.r[src1]);
                 this->dInstr.src2v.push_back(intRegs.r[src2]);
+
+                pendRegs.r[src1]++;
+                pendRegs.r[src2]++;
             }
 
             break;
@@ -70,6 +81,7 @@ void Pipeline::decode(){
         // Branching
         case 1:{
             int opcode = (bin >> 25) & 0b1111;
+            this->dInstr.opcode = opcode;
             //everything besides BX instruction
             if(opcode == 0 || opcode == 1 || opcode == 2 || opcode == 3 || opcode == 4 || opcode == 5 || opcode == 6 || opcode == 7){
                 this->dInstr.branch_offset = bin & 0x3FFFFFF;
@@ -81,19 +93,25 @@ void Pipeline::decode(){
         // Miscellaneous
         case 2:{
             int opcode = (bin >> 25) & 0b1111;
+            this->dInstr.opcode = opcode;
             // load base + offset
             if(opcode == 6){
                 int dest = (bin >> 26) & 0b1111;
                 int base = (bin >> 22) & 0b1111; // this will go in src1 field of instruction object (base is a register!)
                 int offset = (bin >> 13) & 0b1111; // this will go in immediate field of instruction object
 
-                if (!pendRegs.r[dest].empty() || !pendRegs.r[base].empty()) {
+                if (pendRegs.r[dest] != 0 || pendRegs.r[base] != 0) {
                     this->dcontrol.is_stalled = true;
                     return;
                 }
 
                 this->dInstr.destv.push_back(intRegs.r[dest]);
                 this->dInstr.src1v.push_back(intRegs.r[base]);
+
+                pendRegs.r[dest]++;
+                pendRegs.r[base]++;
+
+
                 this->dInstr.immediate = offset;
             }
             // store base + offset
@@ -102,13 +120,18 @@ void Pipeline::decode(){
                 int base = (bin >> 22) & 0b1111; // this will go in src2 field of instruction object (base is a register!)
                 int offset = (bin >> 13) & 0b1111; // this will go in immediate field of instruction object
 
-                if (!pendRegs.r[src1].empty() || !pendRegs.r[base].empty()) {
+                if (pendRegs.r[src1] != 0 || pendRegs.r[base] != 0) {
                     this->dcontrol.is_stalled = true;
                     return;
                 }
 
                 this->dInstr.src1v.push_back(intRegs.r[src1]);
                 this->dInstr.src2v.push_back(intRegs.r[base]);
+
+                pendRegs.r[src1]++;
+                pendRegs.r[base]++;
+
+
                 this->dInstr.immediate = offset;
 
             }
