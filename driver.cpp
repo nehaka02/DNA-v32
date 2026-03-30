@@ -4,6 +4,7 @@
 Pipeline *pipeline = new Pipeline();
 
 void single_clock_cycle(std::string instructionAddr){
+    (pipeline->global_clock)++;
 
     bool is_fwaiting = pipeline->fetch(instructionAddr);
     bool is_dwaiting = pipeline->decode();
@@ -12,40 +13,53 @@ void single_clock_cycle(std::string instructionAddr){
     pipeline->write_back();
 
     if(is_mwaiting){
-        if(!pipeline->wInstr.is_blocked){
+        if(!pipeline->wInstr.is_blocked)
             pipeline->wInstr = {.is_stalled = true};
-        }
-        return;
+        pipeline->mInstr.is_blocked = true;
+        pipeline->eInstr.is_blocked = true;
+        pipeline->dInstr.is_blocked = true;
+        pipeline->fInstr.is_blocked = true;
     }
-    else if(is_dwaiting){
-        if(!pipeline->eInstr.is_blocked){
+
+    if(is_dwaiting){
+        if(!pipeline->wInstr.is_blocked)
+            pipeline->wInstr = pipeline->mInstr;
+        if(!pipeline->mInstr.is_blocked)
+            pipeline->mInstr = pipeline->eInstr;
+        if(!pipeline->eInstr.is_blocked)
             pipeline->eInstr = {.is_stalled = true};
-        }
-        pipeline->wInstr = pipeline->mInstr;
-        pipeline->mInstr = pipeline->eInstr;
-
-        return;
+        pipeline->dInstr.is_blocked = true;
+        pipeline->fInstr.is_blocked = true;
     }
-    else if(is_fwaiting){
-        if(!pipeline->dInstr.is_blocked){
+
+    if(is_fwaiting){
+        if(!pipeline->wInstr.is_blocked)
+            pipeline->wInstr = pipeline->mInstr;
+        if(!pipeline->mInstr.is_blocked)
+            pipeline->mInstr = pipeline->eInstr;
+        if(!pipeline->eInstr.is_blocked)
+            pipeline->eInstr = pipeline->dInstr;
+        if(!pipeline->dInstr.is_blocked)
             pipeline->dInstr = {.is_stalled = true};
-        }
-        pipeline->eInstr = pipeline->dInstr;
-        pipeline->mInstr = pipeline->eInstr;
-        pipeline->wInstr = pipeline->mInstr;
-        return;
-    }
-    else{
-        pipeline->dInstr = pipeline->fInstr;
-        pipeline->eInstr = pipeline->dInstr;
-        pipeline->mInstr = pipeline->eInstr;
-        pipeline->wInstr = pipeline->mInstr;
-        return;
+        pipeline->fInstr.is_blocked = true;
     }
 
-
-    (pipeline->global_clock)++;
-
+    if(!is_mwaiting && !is_dwaiting && !is_fwaiting){
+        if(!pipeline->wInstr.is_blocked)
+            pipeline->wInstr = pipeline->mInstr;
+        if(!pipeline->mInstr.is_blocked)
+            pipeline->mInstr = pipeline->eInstr;
+        if(!pipeline->eInstr.is_blocked)
+            pipeline->eInstr = pipeline->dInstr;
+        if(!pipeline->dInstr.is_blocked)
+            pipeline->dInstr = pipeline->fInstr;
+        // clear all blocks since pipeline is flowing freely
+        pipeline->fInstr.is_blocked = false;
+        pipeline->dInstr.is_blocked = false;
+        pipeline->eInstr.is_blocked = false;
+        pipeline->mInstr.is_blocked = false;
+        pipeline->wInstr.is_blocked = false;
+    }
 }
 
 

@@ -1,6 +1,5 @@
 #include <string>
 #include "pipeline.h"
-#include "main.h"
 #include "cache.h"
 #include "registers.h"
 
@@ -21,7 +20,7 @@ Registers::PendIntegerRegs pendRegs;
 
 
 bool Pipeline::fetch(std::string memoryAddress){
-    std::string readValue = newCache->readMemory(stoi(memoryAddress), 0);
+    std::string readValue = newCache->readMemory(stoi(memoryAddress), 1);
     if (readValue.rfind("Done:", 0) == 0) {  // starts with "Done:"
         this->fInstr.address = stoi(memoryAddress);
         this->fInstr.bin_instr = stoi(readValue.substr(6));
@@ -138,6 +137,7 @@ bool Pipeline::decode(){
             return false;
 
     }
+    return false;
 }
 
 void Pipeline::execute(){
@@ -189,7 +189,7 @@ bool Pipeline::memory_access(){
                 case 0b0110:{ // LDB
                     // result holds the address, go fetch the value
 
-                    std::string readValue = newCache->readMemory(this->mInstr.result, 3);
+                    std::string readValue = newCache->readMemory(this->mInstr.result, 4);
                     if (readValue.rfind("Done:", 0) == 0) { // starts with "Done:"
                         this->mInstr.result = stoi(readValue.substr(6));
                         return false;
@@ -198,7 +198,7 @@ bool Pipeline::memory_access(){
                 }
                 case 0b0010: // STR
                 case 0b0111: { // STRB
-                    std::string status = newCache->writeMemory(this->mInstr.result, this->mInstr.src1v[0], 3);
+                    std::string status = newCache->writeMemory(this->mInstr.result, this->mInstr.src1v[0], 4);
                     if (status.rfind("Done", 0) == 0) { // starts with "Done"
                         return false;
                     }
@@ -217,6 +217,7 @@ bool Pipeline::memory_access(){
         default:
             return false;
     }
+    return false;
 }
 
 void Pipeline::write_back(){
