@@ -57,8 +57,6 @@ void Pipeline::decode(){
                 this->dInstr.src2v.push_back(intRegs.r[src2]);
 
                 pendRegs.r[dest]++;
-                pendRegs.r[src1]++;
-                pendRegs.r[src2]++;
 
             }
             // compare
@@ -70,9 +68,6 @@ void Pipeline::decode(){
                 }
                 this->dInstr.src1v.push_back(intRegs.r[src1]);
                 this->dInstr.src2v.push_back(intRegs.r[src2]);
-
-                pendRegs.r[src1]++;
-                pendRegs.r[src2]++;
             }
 
             break;
@@ -109,8 +104,6 @@ void Pipeline::decode(){
                 this->dInstr.src1v.push_back(intRegs.r[base]);
 
                 pendRegs.r[dest]++;
-                pendRegs.r[base]++;
-
 
                 this->dInstr.immediate = offset;
             }
@@ -127,9 +120,6 @@ void Pipeline::decode(){
 
                 this->dInstr.src1v.push_back(intRegs.r[src1]);
                 this->dInstr.src2v.push_back(intRegs.r[base]);
-
-                pendRegs.r[src1]++;
-                pendRegs.r[base]++;
 
 
                 this->dInstr.immediate = offset;
