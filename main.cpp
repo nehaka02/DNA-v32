@@ -8,6 +8,7 @@
 #include "cache.h"
 #include "pipeline.h"
 #include "driver.h"
+#include "registers.h"
 
 /*
 Memory is an array of integers, not bits.
@@ -165,14 +166,19 @@ int main(int argc, char *argv[])
     // Set it to address 0 (or wherever your first instruction sits)
     // intRegs.r[13] = 0;
 
-    bool halted = false;
-    while (!halted) {
-        // We no longer pass an instruction address string from a file!
+    // main.cpp simulation loop
+    bool machine_active = true;
+    while (machine_active) {
         single_clock_cycle(pipeline);
 
-        // Add logic to determine when to stop the simulation
-        // For example, if PC reaches a specific address or hits a halt opcode
-        // if (intRegs.r[13] >= max_address) halted = true;
+        // Check if the instruction currently in Write Back is a HALT
+        if (pipeline->wInstr.opcode == 31) {
+            machine_active = false;
+            std::cout << "HALT encountered. Powering down..." << std::endl;
+        }
+        extern Registers::IntegerRegs intRegs;
+        // Safety break: stop if we run out of memory bounds
+        if (intRegs.r[13] >= 8192) machine_active = false;
     }
 
     return 0;

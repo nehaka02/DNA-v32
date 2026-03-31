@@ -15,9 +15,6 @@ Pipeline::Pipeline(Cache* externalCache) {
 
 }
 
-// Memory newMemory;
-// Cache* newCache = new Cache(&newMemory);
-
 Registers::IntegerRegs intRegs;
 Registers::PendIntegerRegs pendRegs;
 
@@ -138,6 +135,9 @@ bool Pipeline::decode(){
                 this->dInstr.immediate = offset;
                 return false;
             }
+            if(opcode == 5){
+                this->dInstr.halt_signal = true;
+            }
 
             break;
 
@@ -177,6 +177,8 @@ void Pipeline::execute(){
                     break;
                 case 0b1000: // LDI
                     this->eInstr.result = this->eInstr.immediate;
+                    break;
+                case 0b101: // HALT (do nothing)
                     break;
             }
             break;
@@ -225,6 +227,8 @@ bool Pipeline::memory_access(){
                 case 0b0000: // NOT
                 case 0b1000: // LDI
                     break;   // nothing to do
+                case 0b101: // HALT
+                    break;
             }
             break;
 
@@ -262,8 +266,9 @@ void Pipeline::write_back(){
 
         case 2: {  // Miscellaneous
             int opcode = this->wInstr.opcode;
-            if(opcode == 0b0010 || opcode == 0b0111){
+            if(opcode == 0b0010 || opcode == 0b0111 || opcode == 0b101){
                 // STR / STRB, already written in M, nothing to do
+                // HALT nothing to do
             }
             else{
                 // LD, LDB, LDI, NOT, all write result to dest register
