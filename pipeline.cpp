@@ -338,13 +338,13 @@ int Pipeline::branch_helper() {
     // PC relative for everything except BX
     bool branch = false;
     switch(this->wInstr.opcode){
-    case 0b0000: branch = true; break;                      // B
-    case 0b0001: branch = (Z == 1); break;                  // BEQ
-    case 0b0010: branch = (Z == 0); break;                  // BNE
-    case 0b0011: branch = (N == 1); break;                  // BLT
-    case 0b0100: branch = (N == 1 || Z == 1); break;        // BLE
-    case 0b0101: branch = (N == 0 && Z == 0); break;        // BGT
-    case 0b0110: branch = (N == 0 || Z == 1); break;        // BGE
+        case 0b0000: branch = true; break;                      // B
+        case 0b0001: branch = (Z == 1); break;                  // BEQ
+        case 0b0010: branch = (Z == 0); break;                  // BNE
+        case 0b0011: branch = (N == 1); break;                  // BLT
+        case 0b0100: branch = (N == 1 || Z == 1); break;        // BLE
+        case 0b0101: branch = (N == 0 && Z == 0); break;        // BGT
+        case 0b0110: branch = (N == 0 || Z == 1); break;        // BGE
     }
 
     if(branch){
@@ -353,4 +353,3 @@ int Pipeline::branch_helper() {
     return intRegs.r[13] + 1; // no branch, PC + 1
 
 }
-
