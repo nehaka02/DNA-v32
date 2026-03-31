@@ -1,7 +1,7 @@
 #ifndef PIPELINE_H
 #define PIPELINE_H
 #include <vector>
-
+#include <string>
 
 // note that all fields don't need to be used for every instruction
 // scalars are one-element vectors
@@ -42,6 +42,7 @@ public:
     void write_back();
 private :
     int ALU_helper(int opcode, int a, int b);
+    int branch_helper();
 
 };
 
