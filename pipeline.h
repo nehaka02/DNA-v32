@@ -2,6 +2,7 @@
 #define PIPELINE_H
 #include <vector>
 #include <string>
+#include "cache.h"
 
 // note that all fields don't need to be used for every instruction
 // scalars are one-element vectors
@@ -31,15 +32,18 @@ public:
     InstructionObject eInstr;
     InstructionObject mInstr;
     InstructionObject wInstr;
+    Cache *newCache;
     int global_clock;
 
-    Pipeline();
+    Pipeline(Cache* externalCache);
 
     bool fetch(std::string memoryAddress);
     bool decode();
     void execute();
     bool memory_access();
     void write_back();
+    void print_state();
+
 private :
     int ALU_helper(int opcode, int a, int b);
     int branch_helper();

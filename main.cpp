@@ -6,6 +6,8 @@
 #include <vector>
 #include <cstdio>
 #include "cache.h"
+#include "pipeline.h"
+#include "driver.h"
 
 /*
 Memory is an array of integers, not bits.
@@ -47,7 +49,7 @@ std::string parseInput(std::vector<std::string> tokens, Cache* newCache) {
                       << std::bitset<15>(memoryAddress) << std::endl;
             std::cout << "Clock = " << newCache->clock << std::endl;
             std::cout << std::endl;
-            return 0;
+            return "0";
         }
 
         case 'R':{
@@ -99,12 +101,12 @@ std::string parseInput(std::vector<std::string> tokens, Cache* newCache) {
                 std::cout << "View RAM..." << "start line: " << startLine << ", end line: "<< endLine << std::endl;
                 newCache->printMemory(startLine, endLine);
             }
-            return 0;
+            return "0";
         }
         default:
             std::cout << "Invalid command read from file :(" << std::endl;
             std::cout << std::endl;
-            return 0;
+            return "0";
     }
 
 }
@@ -153,6 +155,27 @@ int main(int argc, char *argv[])
         parseInput(tokens, newCache);
 
     }
+
+    std::cout << "\n--- Memory Populated. Starting Pipeline ---\n" << std::endl;
+
+    // Instantiate your pipeline passing the populated cache
+    Pipeline* pipeline = new Pipeline(newCache);
+
+    // Assume register 13 is the Program Counter (PC)
+    // Set it to address 0 (or wherever your first instruction sits)
+    // intRegs.r[13] = 0;
+
+    bool halted = false;
+    while (!halted) {
+        // We no longer pass an instruction address string from a file!
+        single_clock_cycle(pipeline);
+
+        // Add logic to determine when to stop the simulation
+        // For example, if PC reaches a specific address or hits a halt opcode
+        // if (intRegs.r[13] >= max_address) halted = true;
+    }
+
+    return 0;
 
     return 0;
 }

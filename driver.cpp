@@ -1,12 +1,21 @@
-#include "pipeline.h"
+#include"driver.h"
 #include <string>
+#include "pipeline.h"
+#include "registers.h"
 
-Pipeline *pipeline = new Pipeline();
 
-void single_clock_cycle(std::string instructionAddr){
+// Note: No instructionAddr string needed anymore if fetching via PC
+void single_clock_cycle(Pipeline* pipeline) {
     (pipeline->global_clock)++;
 
-    bool is_fwaiting = pipeline->fetch(instructionAddr);
+    // Get PC from your register file (e.g., r13)
+    // extern Registers::IntegerRegs intRegs; // If defined in pipeline.cpp
+
+    extern Registers::IntegerRegs intRegs;
+    int current_pc = intRegs.r[13];
+
+    // Stage execution
+    bool is_fwaiting = pipeline->fetch(std::to_string(current_pc));
     bool is_dwaiting = pipeline->decode();
     pipeline->execute();
     bool is_mwaiting = pipeline->memory_access();
@@ -60,6 +69,7 @@ void single_clock_cycle(std::string instructionAddr){
         pipeline->mInstr.is_blocked = false;
         pipeline->wInstr.is_blocked = false;
     }
+     pipeline->print_state();
 }
 
 

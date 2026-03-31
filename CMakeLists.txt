@@ -20,6 +20,8 @@ add_executable(DNA-v32
 
   registers.h
   driver.cpp
+
+  driver.h
 )
 target_link_libraries(DNA-v32 PRIVATE Qt${QT_VERSION_MAJOR}::Core)
 

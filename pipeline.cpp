@@ -1,33 +1,36 @@
 #include <string>
+#include <iostream>
 #include "pipeline.h"
 #include "cache.h"
 #include "registers.h"
 
-Pipeline::Pipeline() {
+Pipeline::Pipeline(Cache* externalCache) {
     this->fInstr = {};
     this->dInstr = {};
     this->eInstr = {};
     this->mInstr = {};
     this->wInstr = {};
     this->global_clock = 0;
+    this->newCache = externalCache;
+
 }
 
-Memory newMemory;
-Cache* newCache = new Cache(&newMemory);
+// Memory newMemory;
+// Cache* newCache = new Cache(&newMemory);
 
 Registers::IntegerRegs intRegs;
 Registers::PendIntegerRegs pendRegs;
 
 
 bool Pipeline::fetch(std::string memoryAddress){
-    std::string readValue = newCache->readMemory(stoi(memoryAddress), 1);
+    std::string readValue = this->newCache->readMemory(stoi(memoryAddress), 1);
     if (readValue.rfind("Done:", 0) == 0) {  // starts with "Done:"
         this->fInstr.address = stoi(memoryAddress);
         this->fInstr.bin_instr = stoi(readValue.substr(6));
         return false;
     }
     else{
-        newCache->clock++;
+        this->newCache->clock++;
         return true;
     }
 }
@@ -196,20 +199,26 @@ bool Pipeline::memory_access(){
                 case 0b0110:{ // LDB
                     // result holds the address, go fetch the value
 
-                    std::string readValue = newCache->readMemory(this->mInstr.result, 4);
+                    std::string readValue = this->newCache->readMemory(this->mInstr.result, 4);
                     if (readValue.rfind("Done:", 0) == 0) { // starts with "Done:"
                         this->mInstr.result = stoi(readValue.substr(6));
                         return false;
                     }
-                    return true;
+                    else{
+                        this->newCache->clock++;
+                        return true;
+                    }
                 }
                 case 0b0010: // STR
                 case 0b0111: { // STRB
-                    std::string status = newCache->writeMemory(this->mInstr.result, this->mInstr.src1v[0], 4);
+                    std::string status = this->newCache->writeMemory(this->mInstr.result, this->mInstr.src1v[0], 4);
                     if (status.rfind("Done", 0) == 0) { // starts with "Done"
                         return false;
                     }
-                    return true;
+                    else{
+                        this->newCache->clock++;
+                        return true;
+                    }
 
                     break;
                 }
@@ -352,4 +361,41 @@ int Pipeline::branch_helper() {
     }
     return intRegs.r[13] + 1; // no branch, PC + 1
 
+}
+
+void Pipeline::print_state(){
+    std::cout << "\n========== CLOCK CYCLE " << this->global_clock << " ==========" << std::endl;
+
+    // Pipeline stages
+    std::cout << "\n--- PIPELINE ---" << std::endl;
+    auto printInstr = [](const std::string& name, const InstructionObject& instr){
+        std::cout << name << ": ";
+        if(instr.is_stalled)      std::cout << "[BUBBLE]";
+        else if(instr.is_blocked) std::cout << "[BLOCKED] opcode=" << instr.opcode << " type=" << instr.type_code;
+        else                      std::cout << "opcode=" << instr.opcode << " type=" << instr.type_code << " bin=" << instr.bin_instr;
+        std::cout << std::endl;
+    };
+    printInstr("F", this->fInstr);
+    printInstr("D", this->dInstr);
+    printInstr("E", this->eInstr);
+    printInstr("M", this->mInstr);
+    printInstr("W", this->wInstr);
+
+    // Integer registers
+    std::cout << "\n--- INTEGER REGISTERS ---" << std::endl;
+    for(int i = 0; i < 16; i++){
+        std::cout << "r" << i << "=" << intRegs.r[i] << " ";
+        if((i+1) % 8 == 0) std::cout << std::endl;
+    }
+
+    // Pending registers
+    std::cout << "\n--- PENDING REGISTERS ---" << std::endl;
+    for(int i = 0; i < 16; i++){
+        std::cout << "r" << i << "=" << pendRegs.r[i] << " ";
+        if((i+1) % 8 == 0) std::cout << std::endl;
+    }
+
+    // Cache
+    std::cout << std::endl;
+    this->newCache->printCache();
 }
