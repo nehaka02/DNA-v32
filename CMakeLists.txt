@@ -17,8 +17,9 @@ add_executable(DNA-v32
   memory.h memory.cpp
   cache.h cache.cpp
   pipeline.h pipeline.cpp
-  main.h
+
   registers.h
+  driver.cpp
 )
 target_link_libraries(DNA-v32 PRIVATE Qt${QT_VERSION_MAJOR}::Core)
 

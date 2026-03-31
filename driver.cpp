@@ -1,0 +1,65 @@
+#include "pipeline.h"
+#include <string>
+
+Pipeline *pipeline = new Pipeline();
+
+void single_clock_cycle(std::string instructionAddr){
+    (pipeline->global_clock)++;
+
+    bool is_fwaiting = pipeline->fetch(instructionAddr);
+    bool is_dwaiting = pipeline->decode();
+    pipeline->execute();
+    bool is_mwaiting = pipeline->memory_access();
+    pipeline->write_back();
+
+    if(is_mwaiting){
+        if(!pipeline->wInstr.is_blocked)
+            pipeline->wInstr = {.is_stalled = true};
+        pipeline->mInstr.is_blocked = true;
+        pipeline->eInstr.is_blocked = true;
+        pipeline->dInstr.is_blocked = true;
+        pipeline->fInstr.is_blocked = true;
+    }
+
+    if(is_dwaiting){
+        if(!pipeline->wInstr.is_blocked)
+            pipeline->wInstr = pipeline->mInstr;
+        if(!pipeline->mInstr.is_blocked)
+            pipeline->mInstr = pipeline->eInstr;
+        if(!pipeline->eInstr.is_blocked)
+            pipeline->eInstr = {.is_stalled = true};
+        pipeline->dInstr.is_blocked = true;
+        pipeline->fInstr.is_blocked = true;
+    }
+
+    if(is_fwaiting){
+        if(!pipeline->wInstr.is_blocked)
+            pipeline->wInstr = pipeline->mInstr;
+        if(!pipeline->mInstr.is_blocked)
+            pipeline->mInstr = pipeline->eInstr;
+        if(!pipeline->eInstr.is_blocked)
+            pipeline->eInstr = pipeline->dInstr;
+        if(!pipeline->dInstr.is_blocked)
+            pipeline->dInstr = {.is_stalled = true};
+        pipeline->fInstr.is_blocked = true;
+    }
+
+    if(!is_mwaiting && !is_dwaiting && !is_fwaiting){
+        if(!pipeline->wInstr.is_blocked)
+            pipeline->wInstr = pipeline->mInstr;
+        if(!pipeline->mInstr.is_blocked)
+            pipeline->mInstr = pipeline->eInstr;
+        if(!pipeline->eInstr.is_blocked)
+            pipeline->eInstr = pipeline->dInstr;
+        if(!pipeline->dInstr.is_blocked)
+            pipeline->dInstr = pipeline->fInstr;
+        // clear all blocks since pipeline is flowing freely
+        pipeline->fInstr.is_blocked = false;
+        pipeline->dInstr.is_blocked = false;
+        pipeline->eInstr.is_blocked = false;
+        pipeline->mInstr.is_blocked = false;
+        pipeline->wInstr.is_blocked = false;
+    }
+}
+
+

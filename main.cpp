@@ -70,7 +70,9 @@ std::string parseInput(std::vector<std::string> tokens, Cache* newCache) {
                       << std::bitset<15>(memoryAddress) << std::endl;
             std::cout << "Clock = " << newCache->clock << std::endl;
             std::cout << std::endl;
-            return readValue;
+            std::string readValSub = readValue.substr(6);
+            return readValSub;
+
         }
         // Needs to support view cache memory and view RAM (fo ram limit view range)
         // if location to view = 0 viewing RAM, else location to view = 1 viewing cache

@@ -1,20 +1,15 @@
 #include <string>
 #include "pipeline.h"
-#include "main.h"
 #include "cache.h"
 #include "registers.h"
 
 Pipeline::Pipeline() {
-    this->fcontrol = {false, false};
-    this->dcontrol = {false, false};
-    this->econtrol = {false, false};
-    this->mcontrol = {false, false};
-    this->wcontrol = {false, false};
     this->fInstr = {};
     this->dInstr = {};
     this->eInstr = {};
     this->mInstr = {};
     this->wInstr = {};
+    this->global_clock = 0;
 }
 
 Memory newMemory;
@@ -24,13 +19,20 @@ Registers::IntegerRegs intRegs;
 Registers::PendIntegerRegs pendRegs;
 
 
-void Pipeline::fetch(std::string memoryAddress){
-    std::string bin_instr = parseInput({"R", memoryAddress, "0"}, newCache);
-    this->fInstr.address = stoi(memoryAddress);
-    this->fInstr.bin_instr = stoi(bin_instr);
+bool Pipeline::fetch(std::string memoryAddress){
+    std::string readValue = newCache->readMemory(stoi(memoryAddress), 1);
+    if (readValue.rfind("Done:", 0) == 0) {  // starts with "Done:"
+        this->fInstr.address = stoi(memoryAddress);
+        this->fInstr.bin_instr = stoi(readValue.substr(6));
+        return false;
+    }
+    else{
+        newCache->clock++;
+        return true;
+    }
 }
 
-void Pipeline::decode(){
+bool Pipeline::decode(){
     // get 2 most significant bits
     int bin = this->dInstr.bin_instr;
     int type_code = bin >> 30;
@@ -48,8 +50,7 @@ void Pipeline::decode(){
                 int src1 = (bin >> 17) & 0b1111;
                 int src2 = (bin >> 13) & 0b1111;
                 if (pendRegs.r[dest] != 0 || pendRegs.r[src1] != 0 || pendRegs.r[src2] != 0) {
-                    this->dcontrol.is_stalled = true;
-                    return;
+                    return true;
                 }
 
                 this->dInstr.destv.push_back(intRegs.r[dest]);
@@ -57,17 +58,19 @@ void Pipeline::decode(){
                 this->dInstr.src2v.push_back(intRegs.r[src2]);
 
                 pendRegs.r[dest]++;
+                return false;
 
             }
             // compare
             if(opcode == 28){
                 int src1 = (bin >> 17) & 0b1111;
                 int src2 = (bin >> 13) & 0b1111;
-                while (pendRegs.r[src1] != 0 || pendRegs.r[src2] != 0) {
-                    continue;
+                if (pendRegs.r[src1] != 0 || pendRegs.r[src2] != 0) {
+                    return true;
                 }
                 this->dInstr.src1v.push_back(intRegs.r[src1]);
                 this->dInstr.src2v.push_back(intRegs.r[src2]);
+                return false;
             }
 
             break;
@@ -80,6 +83,7 @@ void Pipeline::decode(){
             //everything besides BX instruction
             if(opcode == 0 || opcode == 1 || opcode == 2 || opcode == 3 || opcode == 4 || opcode == 5 || opcode == 6 || opcode == 7){
                 this->dInstr.branch_offset = bin & 0x3FFFFFF;
+                return false;
             }
             if(opcode == 8) { // BX
                 int src = (bin >> 21) & 0b1111;
@@ -103,8 +107,7 @@ void Pipeline::decode(){
                 int offset = (bin >> 13) & 0b1111; // this will go in immediate field of instruction object
 
                 if (pendRegs.r[dest] != 0 || pendRegs.r[base] != 0) {
-                    this->dcontrol.is_stalled = true;
-                    return;
+                    return true;
                 }
 
                 this->dInstr.destv.push_back(intRegs.r[dest]);
@@ -113,6 +116,7 @@ void Pipeline::decode(){
                 pendRegs.r[dest]++;
 
                 this->dInstr.immediate = offset;
+                return false;
             }
             // store base + offset
             if(opcode == 7){
@@ -121,8 +125,7 @@ void Pipeline::decode(){
                 int offset = (bin >> 13) & 0b1111; // this will go in immediate field of instruction object
 
                 if (pendRegs.r[src1] != 0 || pendRegs.r[base] != 0) {
-                    this->dcontrol.is_stalled = true;
-                    return;
+                    return true;
                 }
 
                 this->dInstr.src1v.push_back(intRegs.r[src1]);
@@ -130,7 +133,7 @@ void Pipeline::decode(){
 
 
                 this->dInstr.immediate = offset;
-
+                return false;
             }
 
             break;
@@ -138,10 +141,10 @@ void Pipeline::decode(){
         }
 
         default:
-            break;
-
+            return false;
 
     }
+    return false;
 }
 
 void Pipeline::execute(){
@@ -181,7 +184,7 @@ void Pipeline::execute(){
     }
 }
 
-void Pipeline::memory_access(){
+bool Pipeline::memory_access(){
     switch(this->mInstr.type_code){
 
         case 0: // ALU, do nothing
@@ -192,19 +195,22 @@ void Pipeline::memory_access(){
                 case 0b0001: // LD
                 case 0b0110:{ // LDB
                     // result holds the address, go fetch the value
-                    std::string val = parseInput(
-                        {"R", std::to_string(this->mInstr.result), "0"},
-                        newCache
-                    );
-                    this->mInstr.result = stoi(val);
-                    break;
+
+                    std::string readValue = newCache->readMemory(this->mInstr.result, 4);
+                    if (readValue.rfind("Done:", 0) == 0) { // starts with "Done:"
+                        this->mInstr.result = stoi(readValue.substr(6));
+                        return false;
+                    }
+                    return true;
                 }
                 case 0b0010: // STR
                 case 0b0111: { // STRB
-                    parseInput(
-                        {"W", std::to_string(this->mInstr.result), std::to_string(this->mInstr.src1v[0])},
-                        newCache
-                    );
+                    std::string status = newCache->writeMemory(this->mInstr.result, this->mInstr.src1v[0], 4);
+                    if (status.rfind("Done", 0) == 0) { // starts with "Done"
+                        return false;
+                    }
+                    return true;
+
                     break;
                 }
                 case 0b0000: // NOT
@@ -215,8 +221,10 @@ void Pipeline::memory_access(){
 
         case 1: // Branch
             break;
-
+        default:
+            return false;
     }
+    return false;
 }
 
 void Pipeline::write_back(){
