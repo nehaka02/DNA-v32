@@ -81,7 +81,14 @@ void Pipeline::decode(){
             if(opcode == 0 || opcode == 1 || opcode == 2 || opcode == 3 || opcode == 4 || opcode == 5 || opcode == 6 || opcode == 7){
                 this->dInstr.branch_offset = bin & 0x3FFFFFF;
             }
-
+            if(opcode == 8) { // BX
+                int src = (bin >> 21) & 0b1111;
+                this->dInstr.src1v.push_back(intRegs.r[src]);
+            }
+            if(opcode == 7) { // LR is pending
+                pendRegs.r[12]++;
+            }
+            pendRegs.r[13]++; // PC register pending
             break;
         }
 
@@ -220,15 +227,19 @@ void Pipeline::write_back(){
             // CMP and CMPI update Condition Register instead of writing to a register
             if(opcode == 0b11100 || opcode == 0b11111){
                 int result = this->wInstr.result;
-                // N = (result < 0) ? 1 : 0;
-                // Z = (result == 0) ? 1 : 0;
-                // // V bit — check for underflow
-                // V = (result > this->wInstr.src1v[0]) ? 1 : 0;
+                int N = (result < 0) ? 1 : 0;  // Negative
+                int Z = (result == 0) ? 1 : 0; // Zero
+                int V = (result > this->wInstr.src1v[0]) ? 1 : 0;  // Overflow
+                intRegs.r[14] = (V << 2) | (Z << 1) | N;   // Order: 00000.....V Z B
+                pendRegs.r[14]--;
                 break;
             }
 
             // All other ALU ops write to dest register
+            // Decrement pending
             intRegs.r[this->wInstr.destv[0]] = this->wInstr.result;
+            pendRegs.r[this->wInstr.destv[0]]--;
+
             break;
         }
 
@@ -238,16 +249,27 @@ void Pipeline::write_back(){
                 // STR / STRB, already written in M, nothing to do
             }
             else{
-                // LD, LDB, LDI, NOT — all write result to dest register
+                // LD, LDB, LDI, NOT, all write result to dest register
                 intRegs.r[this->wInstr.destv[0]] = this->wInstr.result;
+                pendRegs.r[this->wInstr.destv[0]]--;
             }
             break;
         }
 
-        case 1: { // Branch   update PC
+        case 1: { // Branch, update PC R[13]
+            // Pending PC register decrement
+            intRegs.r[13] = branch_helper();
+            pendRegs.r[13]--;
+            break;
 
         }
     }
+
+    // For all non-branch instructions, advance PC by 1
+    if(this->wInstr.type_code != 1){
+        intRegs.r[13]++;
+    }
+
 }
 
 // FIXME: Move to separate file if needed
@@ -285,3 +307,42 @@ int Pipeline::ALU_helper(int opcode, int a, int b) {
 
     }
 }
+
+// Helper for branching, returns the next PC address
+int Pipeline::branch_helper() {
+
+    // BX, jumps to address stored in the register
+    if(this->wInstr.opcode == 0b1000){
+        return this->wInstr.src1v[0];
+    }
+
+    // BL is PC relative, need to update LR R[12]
+    if(this->wInstr.opcode == 0b0111){
+        intRegs.r[12] = intRegs.r[13] + 1; // return address PC + 1 stored in LR
+        pendRegs.r[12]--; // Pending LR
+        return intRegs.r[13] + this->wInstr.branch_offset;
+    }
+
+    int CR = intRegs.r[14];
+    int N = (CR >> 0) & 1;
+    int Z = (CR >> 1) & 1;
+
+    // PC relative for everything except BX
+    bool branch = false;
+    switch(this->wInstr.opcode){
+    case 0b0000: branch = true; break;                      // B
+    case 0b0001: branch = (Z == 1); break;                  // BEQ
+    case 0b0010: branch = (Z == 0); break;                  // BNE
+    case 0b0011: branch = (N == 1); break;                  // BLT
+    case 0b0100: branch = (N == 1 || Z == 1); break;        // BLE
+    case 0b0101: branch = (N == 0 && Z == 0); break;        // BGT
+    case 0b0110: branch = (N == 0 || Z == 1); break;        // BGE
+    }
+
+    if(branch){
+        return intRegs.r[13] + this->wInstr.branch_offset;
+    }
+    return intRegs.r[13] + 1; // no branch, PC + 1
+
+}
+
