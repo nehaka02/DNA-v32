@@ -26,6 +26,7 @@ bool Pipeline::fetch(){
     if (readValue.rfind("Done:", 0) == 0) {  // starts with "Done:"
         this->fInstr.address = current_pc;
         this->fInstr.bin_instr = static_cast<int>(stoul(readValue.substr(6)));
+        this->fInstr.is_stalled = false;
         return false;
     }
     else{
@@ -35,8 +36,13 @@ bool Pipeline::fetch(){
 }
 
 bool Pipeline::decode(){
+
+    if (this->dInstr.is_stalled) {
+        return false; // Do nothing for bubbles, and don't stall
+    }
+
     // get 2 most significant bits
-    int bin = this->dInstr.bin_instr;
+    unsigned int bin = this->dInstr.bin_instr;
     int type_code = bin >> 30;
     this->dInstr.type_code = type_code;
 
@@ -303,9 +309,9 @@ void Pipeline::write_back(){
     }
 
     // For all non-branch instructions, advance PC by 1
-    if(this->wInstr.type_code != 1){
-        intRegs.r[13]++;
-    }
+    // if(this->wInstr.type_code != 1){
+    //     intRegs.r[13]++;
+    // }
 
 }
 
