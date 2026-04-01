@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
     Cache* newCache = new Cache(&newMemory);
 
     // For reading from a file
-    std::ifstream file("demo_commands.txt");
+    std::ifstream file("demo_commands2.txt");
     std::string userInput;
 
     // Make sure to set working directory to DNA-v32
@@ -168,18 +168,23 @@ int main(int argc, char *argv[])
 
     // main.cpp simulation loop
     bool machine_active = true;
-    int i = 0;
-    while (machine_active && i < 10) {
+    int i;
+    while (machine_active && i < 30) {
         single_clock_cycle(pipeline);
 
         // Check if the instruction currently in Write Back is a HALT
-        if (pipeline->wInstr.opcode == 31) {
+        if (pipeline->wInstr.opcode == 5) {
             machine_active = false;
             std::cout << "HALT encountered. Powering down..." << std::endl;
         }
+        // if(pipeline->wInstr.halt_signal){
+        //     machine_active = false;
+        //     std::cout << "HALT encountered. Powering down..." << std::endl;
+        // }
         extern Registers::IntegerRegs intRegs;
         // Safety break: stop if we run out of memory bounds
         if (intRegs.r[13] >= 8192) machine_active = false;
+
         i++;
     }
 

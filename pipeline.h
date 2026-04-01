@@ -23,7 +23,6 @@ struct InstructionObject {
     bool halt_signal = false;
 };
 
-
 class Pipeline
 {
 public:
@@ -35,6 +34,7 @@ public:
     InstructionObject wInstr;
     Cache *newCache;
     int global_clock;
+    bool squashed = false; 
 
     Pipeline(Cache* externalCache);
 
@@ -47,7 +47,7 @@ public:
 
 private :
     int ALU_helper(int opcode, int a, int b);
-    int branch_helper();
+    int branch_helper(int addr);
 
 };
 

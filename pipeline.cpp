@@ -22,14 +22,24 @@ Registers::PendIntegerRegs pendRegs;
 
 bool Pipeline::fetch(){
     int current_pc = intRegs.r[13];
+
     std::string readValue = this->newCache->readMemory(current_pc, 1);
     if (readValue.rfind("Done:", 0) == 0) {  // starts with "Done:"
         this->fInstr.address = current_pc;
         this->fInstr.bin_instr = static_cast<int>(stoul(readValue.substr(6)));
-        this->fInstr.is_stalled = false;
+        this->fInstr.is_blocked = false;
+
+        // FIXME: PC should be updated when f is able to pass on it's instruction block
+        // //UPDATE PC HERE
+        // if(!this->dInstr.is_blocked){
+        //      intRegs.r[13]++;
+        //  }
+
         return false;
     }
     else{
+        this->fInstr = InstructionObject{};
+        this->fInstr.is_blocked = true;
         this->newCache->clock++;
         return true;
     }
@@ -37,15 +47,20 @@ bool Pipeline::fetch(){
 
 bool Pipeline::decode(){
 
-    if (this->dInstr.is_stalled) {
-        return false; // Do nothing for bubbles, and don't stall
+    // if (this->dInstr.is_stalled) {
+    //     return false; // Do nothing for bubbles, and don't stall
+    // }
+
+    if(this->dInstr.is_stalled || this->dInstr.bin_instr == -1){
+        return false;
     }
 
     // get 2 most significant bits
     unsigned int bin = this->dInstr.bin_instr;
     int type_code = bin >> 30;
     this->dInstr.type_code = type_code;
-
+    
+              
     switch(type_code){
         // ALU Ops
         case 0:{
@@ -61,7 +76,8 @@ bool Pipeline::decode(){
                     return true;
                 }
 
-                this->dInstr.destv.push_back(intRegs.r[dest]);
+                //this->dInstr.destv.push_back(intRegs.r[dest]);
+                this->dInstr.destv.push_back(dest);
                 this->dInstr.src1v.push_back(intRegs.r[src1]);
                 this->dInstr.src2v.push_back(intRegs.r[src2]);
 
@@ -86,15 +102,18 @@ bool Pipeline::decode(){
 
         // Branching
         case 1:{
-            int opcode = (bin >> 25) & 0b1111;
+
+            int opcode = (bin >> 26) & 0b1111;
+
             this->dInstr.opcode = opcode;
+
             //everything besides BX instruction
             if(opcode == 0 || opcode == 1 || opcode == 2 || opcode == 3 || opcode == 4 || opcode == 5 || opcode == 6 || opcode == 7){
                 this->dInstr.branch_offset = bin & 0x3FFFFFF;
                 return false;
             }
             if(opcode == 8) { // BX
-                int src = (bin >> 21) & 0b1111;
+                int src = (bin >> 22) & 0b1111;
                 this->dInstr.src1v.push_back(intRegs.r[src]);
             }
             if(opcode == 7) { // LR is pending
@@ -106,7 +125,7 @@ bool Pipeline::decode(){
 
         // Miscellaneous
         case 2:{
-            int opcode = (bin >> 25) & 0b1111;
+            int opcode = (bin >> 26) & 0b1111;
             this->dInstr.opcode = opcode;
             // load base + offset
             if(opcode == 6){
@@ -143,6 +162,17 @@ bool Pipeline::decode(){
                 this->dInstr.immediate = offset;
                 return false;
             }
+            // LDI
+            if(opcode == 8){
+                int dest = (bin >> 22) & 0b1111;
+                int immediate = bin & 0x3FFFFF; // 22 bits
+
+                this->dInstr.destv.push_back(dest);
+                this->dInstr.immediate = immediate;
+                pendRegs.r[dest]++;
+                return false;
+            }
+            // Halt
             if(opcode == 5){
                 this->dInstr.halt_signal = true;
             }
@@ -160,7 +190,7 @@ bool Pipeline::decode(){
 
 void Pipeline::execute(){
 
-    if(this->eInstr.is_stalled || this->eInstr.is_blocked || this->eInstr.bin_instr == 0){
+    if(this->eInstr.is_stalled || this->eInstr.is_blocked || this->eInstr.bin_instr == -1){
         return;
     }
 
@@ -202,7 +232,7 @@ void Pipeline::execute(){
 }
 
 bool Pipeline::memory_access(){
-    if(this->mInstr.is_stalled || this->mInstr.bin_instr == 0){
+    if(this->mInstr.is_stalled || this->mInstr.bin_instr == -1){
         return false;
     }
 
@@ -243,7 +273,7 @@ bool Pipeline::memory_access(){
                 case 0b0000: // NOT
                 case 0b1000: // LDI
                     break;   // nothing to do
-                case 0b101: // HALT
+                case 0b0101: // HALT
                     break;
             }
             break;
@@ -257,11 +287,10 @@ bool Pipeline::memory_access(){
 }
 
 void Pipeline::write_back(){
-    if(this->wInstr.is_stalled || this->wInstr.is_blocked || this->wInstr.bin_instr == 0){
+    if(this->wInstr.is_stalled || this->wInstr.is_blocked || this->wInstr.bin_instr == -1){
         return;
     }
-
-
+    
     switch(this->wInstr.type_code){
         case 0: {  // ALU
             int opcode = this->wInstr.opcode;
@@ -300,9 +329,35 @@ void Pipeline::write_back(){
         }
 
         case 1: { // Branch, update PC R[13]
-            // Pending PC register decrement
-            intRegs.r[13] = branch_helper();
+            // // Pending PC register decrement
+            // int addr = this->wInstr.address;
+            // int new_pc = branch_helper(addr);
+            // intRegs.r[13] = new_pc;
+            // pendRegs.r[13]--;
+            
+            // // Only squash if branch target is different from sequential next instruction
+            // // Sequential next = addr + 1 (next instruction after branch) ==> Branching needed
+            // if(new_pc != addr + 1){
+            //     squashed = true;
+            // }
+            // break;
+
+            int addr = this->wInstr.address;
+            int new_pc = branch_helper(addr);
+            
+            std::cout << "DEBUG BRANCH: addr=" << addr 
+                    << " new_pc=" << new_pc
+                    << " current_pc=" << intRegs.r[13]
+                    << " addr+1=" << (addr+1)
+                    << " squash=" << (new_pc != addr+1) << std::endl;
+            
+            intRegs.r[13] = new_pc;
             pendRegs.r[13]--;
+            
+            if(new_pc != addr + 1){
+                squashed = true;
+                std::cout << "DEBUG: squash set!" << std::endl;
+            }
             break;
 
         }
@@ -352,7 +407,7 @@ int Pipeline::ALU_helper(int opcode, int a, int b) {
 }
 
 // Helper for branching, returns the next PC address
-int Pipeline::branch_helper() {
+int Pipeline::branch_helper(int addr) {
 
     // BX, jumps to address stored in the register
     if(this->wInstr.opcode == 0b1000){
@@ -363,12 +418,18 @@ int Pipeline::branch_helper() {
     if(this->wInstr.opcode == 0b0111){
         intRegs.r[12] = intRegs.r[13] + 1; // return address PC + 1 stored in LR
         pendRegs.r[12]--; // Pending LR
-        return intRegs.r[13] + this->wInstr.branch_offset;
+        return addr + this->wInstr.branch_offset;
     }
 
     int CR = intRegs.r[14];
     int N = (CR >> 0) & 1;
     int Z = (CR >> 1) & 1;
+
+
+    // Debug print 
+    // std::cout << "DEBUG BRANCH_HELPER: CR=" << CR 
+    //       << " N=" << N << " Z=" << Z << std::endl;
+
 
     // PC relative for everything except BX
     bool branch = false;
@@ -383,10 +444,10 @@ int Pipeline::branch_helper() {
     }
 
     if(branch){
-        return intRegs.r[13] + this->wInstr.branch_offset;
+        return addr + this->wInstr.branch_offset;
     }
-    return intRegs.r[13] + 1; // no branch, PC + 1
 
+    return intRegs.r[13];
 }
 
 void Pipeline::print_state(){
