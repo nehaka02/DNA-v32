@@ -20,6 +20,7 @@ struct InstructionObject {
     int result     = 0;
     bool is_stalled = false;
     bool is_blocked = false;
+    bool halt_signal = false;
 };
 
 
@@ -37,7 +38,7 @@ public:
 
     Pipeline(Cache* externalCache);
 
-    bool fetch(std::string memoryAddress);
+    bool fetch();
     bool decode();
     void execute();
     bool memory_access();

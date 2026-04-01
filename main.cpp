@@ -37,7 +37,7 @@ std::string parseInput(std::vector<std::string> tokens, Cache* newCache) {
 
     switch(switchKey) {
         case 'W':{
-            int data = std::stoi(tokens[2]);
+            int data = static_cast<int>(stoul(tokens[2]));
             int pipelineStage = std::stoi(tokens[3]);
 
             int memoryAddress = std::stoi(tokens[1]);
@@ -168,7 +168,8 @@ int main(int argc, char *argv[])
 
     // main.cpp simulation loop
     bool machine_active = true;
-    while (machine_active) {
+    int i = 0;
+    while (machine_active && i < 10) {
         single_clock_cycle(pipeline);
 
         // Check if the instruction currently in Write Back is a HALT
@@ -179,6 +180,7 @@ int main(int argc, char *argv[])
         extern Registers::IntegerRegs intRegs;
         // Safety break: stop if we run out of memory bounds
         if (intRegs.r[13] >= 8192) machine_active = false;
+        i++;
     }
 
     return 0;

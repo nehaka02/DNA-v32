@@ -6,16 +6,22 @@
 
 // Note: No instructionAddr string needed anymore if fetching via PC
 void single_clock_cycle(Pipeline* pipeline) {
+
+    extern Registers::IntegerRegs intRegs;
+
+    if(pipeline->global_clock == 0){
+        intRegs.r[13] = 0;
+    }
+
+
     (pipeline->global_clock)++;
 
     // Get PC from your register file (e.g., r13)
     // extern Registers::IntegerRegs intRegs; // If defined in pipeline.cpp
 
-    extern Registers::IntegerRegs intRegs;
-    int current_pc = intRegs.r[13];
 
     // Stage execution
-    bool is_fwaiting = pipeline->fetch(std::to_string(current_pc));
+    bool is_fwaiting = pipeline->fetch();
     bool is_dwaiting = pipeline->decode();
     pipeline->execute();
     bool is_mwaiting = pipeline->memory_access();
@@ -54,6 +60,11 @@ void single_clock_cycle(Pipeline* pipeline) {
     }
 
     if(!is_mwaiting && !is_dwaiting && !is_fwaiting){
+        pipeline->fInstr.is_blocked = false;
+        pipeline->dInstr.is_blocked = false;
+        pipeline->eInstr.is_blocked = false;
+        pipeline->mInstr.is_blocked = false;
+        pipeline->wInstr.is_blocked = false;
         if(!pipeline->wInstr.is_blocked)
             pipeline->wInstr = pipeline->mInstr;
         if(!pipeline->mInstr.is_blocked)
@@ -63,11 +74,7 @@ void single_clock_cycle(Pipeline* pipeline) {
         if(!pipeline->dInstr.is_blocked)
             pipeline->dInstr = pipeline->fInstr;
         // clear all blocks since pipeline is flowing freely
-        pipeline->fInstr.is_blocked = false;
-        pipeline->dInstr.is_blocked = false;
-        pipeline->eInstr.is_blocked = false;
-        pipeline->mInstr.is_blocked = false;
-        pipeline->wInstr.is_blocked = false;
+
     }
      pipeline->print_state();
 }

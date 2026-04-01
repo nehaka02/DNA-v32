@@ -1,5 +1,6 @@
 #include <string>
 #include <iostream>
+
 #include "pipeline.h"
 #include "cache.h"
 #include "registers.h"
@@ -19,11 +20,12 @@ Registers::IntegerRegs intRegs;
 Registers::PendIntegerRegs pendRegs;
 
 
-bool Pipeline::fetch(std::string memoryAddress){
-    std::string readValue = this->newCache->readMemory(stoi(memoryAddress), 1);
+bool Pipeline::fetch(){
+    int current_pc = intRegs.r[13];
+    std::string readValue = this->newCache->readMemory(current_pc, 1);
     if (readValue.rfind("Done:", 0) == 0) {  // starts with "Done:"
-        this->fInstr.address = stoi(memoryAddress);
-        this->fInstr.bin_instr = stoi(readValue.substr(6));
+        this->fInstr.address = current_pc;
+        this->fInstr.bin_instr = static_cast<int>(stoul(readValue.substr(6)));
         return false;
     }
     else{
@@ -152,6 +154,10 @@ bool Pipeline::decode(){
 
 void Pipeline::execute(){
 
+    if(this->eInstr.is_stalled || this->eInstr.is_blocked || this->eInstr.bin_instr == 0){
+        return;
+    }
+
     switch(this->eInstr.type_code){
 
         case 0: // Data Processing
@@ -190,6 +196,10 @@ void Pipeline::execute(){
 }
 
 bool Pipeline::memory_access(){
+    if(this->mInstr.is_stalled || this->mInstr.bin_instr == 0){
+        return false;
+    }
+
     switch(this->mInstr.type_code){
 
         case 0: // ALU, do nothing
@@ -203,7 +213,7 @@ bool Pipeline::memory_access(){
 
                     std::string readValue = this->newCache->readMemory(this->mInstr.result, 4);
                     if (readValue.rfind("Done:", 0) == 0) { // starts with "Done:"
-                        this->mInstr.result = stoi(readValue.substr(6));
+                        this->mInstr.result =static_cast<int>(stoul(readValue.substr(6)));
                         return false;
                     }
                     else{
@@ -241,6 +251,11 @@ bool Pipeline::memory_access(){
 }
 
 void Pipeline::write_back(){
+    if(this->wInstr.is_stalled || this->wInstr.is_blocked || this->wInstr.bin_instr == 0){
+        return;
+    }
+
+
     switch(this->wInstr.type_code){
         case 0: {  // ALU
             int opcode = this->wInstr.opcode;
