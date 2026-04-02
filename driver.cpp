@@ -13,6 +13,30 @@ void single_clock_cycle(Pipeline* pipeline) {
         intRegs.r[13] = 0;
     }
 
+    // Handle squash after write_back
+    if(pipeline->squashed){
+        pipeline->fInstr.address=-2;
+        pipeline->dInstr.address=-2;
+        pipeline->eInstr.address=-2;
+        pipeline->mInstr.address=-2;
+        pipeline->wInstr.address=-2;
+        pipeline->wInstr.is_stalled=false;
+
+        // pipeline->fInstr  = InstructionObject{.bin_instr=-2};
+        // pipeline->fInstr.bin_instr = -1;
+        //pipeline->fInstr.is_stalled = true;
+        // pipeline->dInstr = InstructionObject{.bin_instr=-2};
+        // //pipeline->dInstr.is_stalled = true;
+        // pipeline->eInstr = InstructionObject{.bin_instr=-2};
+        // //pipeline->eInstr.is_stalled = true;
+        // pipeline->mInstr = InstructionObject{.bin_instr=-2};
+        // //pipeline->mInstr.is_stalled = true;
+        // pipeline->wInstr = InstructionObject{.bin_instr=-2};  // ADD THIS
+        //pipeline->wInstr.is_stalled = true;
+        pipeline->squashed = false;
+
+    }
+
     curClockCycle = pipeline -> global_clock;
     (pipeline->global_clock)++;
 
@@ -40,7 +64,22 @@ void single_clock_cycle(Pipeline* pipeline) {
     // Print state of all instruction structs after stage execution
     auto printInstr = [](const std::string& name, const InstructionObject& instr){
         std::cout << name << ": ";
-        if(instr.bin_instr == -2)      std::cout << "[SQUASHED]";
+        if(instr.address == -2){
+            std::cout << "[SQUASHED]";
+            if(instr.is_stalled == false){
+                std::cout << "bin=" << instr.bin_instr
+                          << " type=" << instr.type_code
+                          << " opcode=" << instr.opcode
+                          << " imm=" << instr.immediate
+                          << " result=" << instr.result;
+                if(!instr.src1v.empty()) std::cout << " src1=" << instr.src1v[0];
+                if(!instr.src2v.empty()) std::cout << " src2=" << instr.src2v[0];
+                if(!instr.destv.empty()) std::cout << " dest=" << instr.destv[0];
+            }
+            else{
+                 std::cout << "[BUBBLE]";
+            }
+        }
         else if(instr.is_stalled)       std::cout << "[BUBBLE]";
         else if(instr.is_blocked)  std::cout << "[BLOCKED]";
         else if(instr.bin_instr == -1) std::cout << "[EMPTY]";
@@ -74,23 +113,7 @@ void single_clock_cycle(Pipeline* pipeline) {
     // Assign blocks and stalls: blocks propagate backwards, stalls go forward
     // Forward instruction struct when possible
 
-    // Handle squash after write_back
-    if(pipeline->squashed){
-        pipeline->fInstr = InstructionObject{.bin_instr=-2};
-        // pipeline->fInstr.bin_instr = -1;
-        //pipeline->fInstr.is_stalled = true;
-        pipeline->dInstr = InstructionObject{.bin_instr=-2};
-        //pipeline->dInstr.is_stalled = true;
-        pipeline->eInstr = InstructionObject{.bin_instr=-2};
-        //pipeline->eInstr.is_stalled = true;
-        pipeline->mInstr = InstructionObject{.bin_instr=-2};
-        //pipeline->mInstr.is_stalled = true;
-        pipeline->wInstr = InstructionObject{.bin_instr=-2};  // ADD THIS
-        //pipeline->wInstr.is_stalled = true;
-        pipeline->squashed = false;
-
-    }
-    else {
+    // else {
         // Handles stage M
         if (is_mwaiting) {
             pipeline->mInstr.is_blocked = true;
@@ -158,7 +181,7 @@ void single_clock_cycle(Pipeline* pipeline) {
             }
 
         }
-    }
+    // }
 }
 
 
