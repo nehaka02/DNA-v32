@@ -51,7 +51,7 @@ bool Pipeline::decode(){
     //     return false; // Do nothing for bubbles, and don't stall
     // }
 
-    if(this->dInstr.is_stalled || this->dInstr.bin_instr == -1){
+    if(this->dInstr.is_stalled || this->dInstr.bin_instr == -1 ||this->dInstr.bin_instr == -2){
         return false;
     }
 
@@ -190,7 +190,7 @@ bool Pipeline::decode(){
 
 void Pipeline::execute(){
 
-    if(this->eInstr.is_stalled || this->eInstr.is_blocked || this->eInstr.bin_instr == -1){
+    if(this->eInstr.is_stalled || this->eInstr.is_blocked || this->eInstr.bin_instr == -1 || this->eInstr.bin_instr == -2){
         return;
     }
 
@@ -232,7 +232,7 @@ void Pipeline::execute(){
 }
 
 bool Pipeline::memory_access(){
-    if(this->mInstr.is_stalled || this->mInstr.bin_instr == -1){
+    if(this->mInstr.is_stalled || this->mInstr.bin_instr == -1 || this->mInstr.bin_instr == -2){
         return false;
     }
 
@@ -287,7 +287,7 @@ bool Pipeline::memory_access(){
 }
 
 void Pipeline::write_back(){
-    if(this->wInstr.is_stalled || this->wInstr.is_blocked || this->wInstr.bin_instr == -1){
+    if(this->wInstr.is_stalled || this->wInstr.is_blocked || this->wInstr.bin_instr == -1 || this->wInstr.bin_instr == -2){
         return;
     }
     
