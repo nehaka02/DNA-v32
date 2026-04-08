@@ -66,8 +66,9 @@ bool Pipeline::decode(){
         case 0:{
             int opcode = (bin >> 25) & 0b11111;
             this->dInstr.opcode = opcode;
-            // integer add
-            if(opcode == 0){
+
+            // scalar instruction (except CMP and immediate shifts)
+            if(opcode >= 0 && opcode <= 11){
                 // reminder these are all register numbers
                 int dest = (bin >> 21) & 0b1111;
                 int src1 = (bin >> 17) & 0b1111;
@@ -75,8 +76,7 @@ bool Pipeline::decode(){
                 if (pendRegs.r[dest] != 0 || pendRegs.r[src1] != 0 || pendRegs.r[src2] != 0) {
                     return true;
                 }
-
-                //this->dInstr.destv.push_back(intRegs.r[dest]);
+                //this->dInstr.destv.push_back(dest);
                 this->dInstr.destv.push_back(dest);
                 this->dInstr.src1v.push_back(intRegs.r[src1]);
                 this->dInstr.src2v.push_back(intRegs.r[src2]);
@@ -85,15 +85,58 @@ bool Pipeline::decode(){
                 return false;
 
             }
-            // compare
-            if(opcode == 28){
+            // vector instructions
+            if(opcode == 12 || opcode == 13 || opcode == 14){
+                // TODO
+                break;
+
+            }
+            // immediate ops (excluding CMPI)
+            if(opcode >= 15 && opcode <= 26){
+                int dest = (bin >> 21) & 0b1111;
                 int src1 = (bin >> 17) & 0b1111;
-                int src2 = (bin >> 13) & 0b1111;
+                if (pendRegs.r[dest] != 0 || pendRegs.r[src1] != 0) {
+                    return true;
+                }
+                this->dInstr.destv.push_back(dest);
+                this->dInstr.src1v.push_back(intRegs.r[src1]);
+
+                pendRegs.r[dest]++;
+                return false;
+            }
+            // compare (note compare got moved from opcode 28 --> 27!)
+            if(opcode == 27){
+                int src1 = (bin >> 21) & 0b1111;
+                int src2 = (bin >> 17) & 0b1111;
                 if (pendRegs.r[src1] != 0 || pendRegs.r[src2] != 0) {
                     return true;
                 }
                 this->dInstr.src1v.push_back(intRegs.r[src1]);
                 this->dInstr.src2v.push_back(intRegs.r[src2]);
+
+                pendRegs.r[14]++; // flags register
+                return false;
+            }
+            // VEQ
+            if(opcode == 28){
+                // TODO
+                break;
+
+            }
+            // VSUM
+            if(opcode == 29){
+                // TODO
+                break;
+            }
+            // CMPI
+            if(opcode == 30){
+                int src1 = (bin >> 21) & 0b1111;
+                int immediate = (bin & 0x1FFFFF);
+                if(pendRegs.r[src1] != 0 ) {
+                    return true;
+                }
+                this->dInstr.src1v.push_back(intRegs.r[src1]);
+                this->dInstr.immediate = immediate;
                 return false;
             }
 
@@ -102,13 +145,11 @@ bool Pipeline::decode(){
 
         // Branching
         case 1:{
-
             int opcode = (bin >> 26) & 0b1111;
-
             this->dInstr.opcode = opcode;
 
             //everything besides BX instruction
-            if(opcode == 0 || opcode == 1 || opcode == 2 || opcode == 3 || opcode == 4 || opcode == 5 || opcode == 6 || opcode == 7){
+            if(opcode >= 0 && opcode <= 7){
                 this->dInstr.branch_offset = bin & 0x3FFFFFF;
                 return false;
             }
@@ -127,29 +168,54 @@ bool Pipeline::decode(){
         case 2:{
             int opcode = (bin >> 26) & 0b1111;
             this->dInstr.opcode = opcode;
+
+            // NOT, LD, STR
+            if(opcode == 0 || opcode == 1 || opcode == 2){
+                int dest = (bin >> 22) & 0b1111;
+                int src = (bin >> 18) & 0b1111;
+                if (pendRegs.r[dest] != 0 || pendRegs.r[src] != 0) {
+                    return true;
+                }
+                this->dInstr.destv.push_back(dest);
+                this->dInstr.src1v.push_back(intRegs.r[src]);
+
+                pendRegs.r[dest]++;
+                return false;
+            }
+
+            // VLD and VSTR
+            if(opcode == 3 || opcode == 4){
+                // TODO
+                break;
+            }
+
+            // Halt
+            if(opcode == 5){
+                this->dInstr.halt_signal = true;
+            }
+
             // load base + offset
             if(opcode == 6){
-                int dest = (bin >> 26) & 0b1111;
-                int base = (bin >> 22) & 0b1111; // this will go in src1 field of instruction object (base is a register!)
-                int offset = (bin >> 13) & 0b1111; // this will go in immediate field of instruction object
+                int dest = (bin >> 22) & 0b1111;
+                int base = (bin >> 18) & 0b1111; // this will go in src1 field of instruction object (base is a register!)
+                int offset = (bin & 0x3FFFF); // this will go in immediate field of instruction object
 
                 if (pendRegs.r[dest] != 0 || pendRegs.r[base] != 0) {
                     return true;
                 }
 
-                this->dInstr.destv.push_back(intRegs.r[dest]);
+                this->dInstr.destv.push_back(dest);
                 this->dInstr.src1v.push_back(intRegs.r[base]);
+                this->dInstr.immediate = offset;
 
                 pendRegs.r[dest]++;
-
-                this->dInstr.immediate = offset;
                 return false;
             }
             // store base + offset
             if(opcode == 7){
-                int src1 = (bin >> 26) & 0b1111;
-                int base = (bin >> 22) & 0b1111; // this will go in src2 field of instruction object (base is a register!)
-                int offset = (bin >> 13) & 0b1111; // this will go in immediate field of instruction object
+                int src1 = (bin >> 22) & 0b1111;
+                int base = (bin >> 18) & 0b1111; // this will go in src2 field of instruction object (base is a register!)
+                int offset = (bin & 0x3FFFF); // this will go in immediate field of instruction object
 
                 if (pendRegs.r[src1] != 0 || pendRegs.r[base] != 0) {
                     return true;
@@ -157,9 +223,8 @@ bool Pipeline::decode(){
 
                 this->dInstr.src1v.push_back(intRegs.r[src1]);
                 this->dInstr.src2v.push_back(intRegs.r[base]);
-
-
                 this->dInstr.immediate = offset;
+
                 return false;
             }
             // LDI
@@ -169,12 +234,9 @@ bool Pipeline::decode(){
 
                 this->dInstr.destv.push_back(dest);
                 this->dInstr.immediate = immediate;
+
                 pendRegs.r[dest]++;
                 return false;
-            }
-            // Halt
-            if(opcode == 5){
-                this->dInstr.halt_signal = true;
             }
 
             break;
@@ -194,38 +256,79 @@ void Pipeline::execute(){
         return;
     }
 
-    switch(this->eInstr.type_code){
+    int opcode = this->eInstr.opcode;
 
-        case 0: // Data Processing
-            this->eInstr.result = ALU_helper(
-                this->eInstr.opcode,
-                this->eInstr.src1v[0],
-                this->eInstr.src2v[0]  // D puts immediate into src2v[0] for immediate instructions
-                );
+    switch(this->eInstr.type_code){
+        case 0:{
+            // scalars
+            if(opcode >= 0 && opcode <= 11 || opcode == 27){
+                this->eInstr.result = ALU_helper(
+                    this->eInstr.opcode,
+                    this->eInstr.src1v[0],
+                    this->eInstr.src2v[0]
+                    );
+            }
+            // vector instructions
+            if(opcode == 12 || opcode == 13 || opcode == 14){
+                // TODO
+                break;
+            }
+            // scalar immediates
+            if(opcode >= 15 && opcode <= 26 || opcode == 30){
+                this->eInstr.result = ALU_helper(
+                    this->eInstr.opcode,
+                    this->eInstr.src1v[0],
+                    this->eInstr.immediate
+                    );
+            }
+
+            // VEQ and VSUM
+            if(opcode == 28){
+                // TODO
+                break;
+            }
+            if(opcode == 29){
+                // TODO
+                break;
+            }
+
+            break;
+        }
+
+        case 1: // Branch, E does nothing
             break;
 
-        case 2: // Miscellaneous
+        case 2:{ // Miscellaneous
             switch(this->eInstr.opcode){
-                case 0b0000: // NOT
+                case 0: // NOT
                     this->eInstr.result = ~this->eInstr.src1v[0];
                     break;
-                case 0b0001: // LD
-                case 0b0010: // STR
+                case 1: // LD
+                    this->eInstr.result = this->eInstr.src1v[0];
+                case 2: // STR
                     this->eInstr.result = this->eInstr.src1v[0];
                     break;
-                case 0b0110: // LDB
-                case 0b0111: // STRB
+                case 3: // VLD
+                    // TODO
+                    break;
+                case 4: // VSTR
+                    // TODO
+                    break;
+                case 5: // HALT (do nothing)
+                    break;
+                case 6: // LDB
                     this->eInstr.result = this->eInstr.src1v[0] + this->eInstr.immediate;
+                case 7: // STRB
+                    this->eInstr.result = this->eInstr.src2v[0] + this->eInstr.immediate;
                     break;
-                case 0b1000: // LDI
+                case 8: // LDI
                     this->eInstr.result = this->eInstr.immediate;
-                    break;
-                case 0b101: // HALT (do nothing)
                     break;
             }
             break;
+        }
 
-        case 1: // Branch, E does nothing
+        default:
             break;
 
     }
@@ -237,16 +340,16 @@ bool Pipeline::memory_access(){
     }
 
     switch(this->mInstr.type_code){
-
         case 0: // ALU, do nothing
+            break;
+
+        case 1: // Branch
             break;
 
         case 2: // Miscellaneous
             switch(this->mInstr.opcode){
-                case 0b0001: // LD
-                case 0b0110:{ // LDB
+                case 1:{ // LD
                     // result holds the address, go fetch the value
-
                     std::string readValue = this->newCache->readMemory(this->mInstr.result, 4);
                     if (readValue.rfind("Done:", 0) == 0) { // starts with "Done:"
                         this->mInstr.result =static_cast<int>(stoul(readValue.substr(6)));
@@ -256,11 +359,14 @@ bool Pipeline::memory_access(){
                         this->newCache->clock++;
                         return true;
                     }
+
+                    break;
                 }
-                case 0b0010: // STR
-                case 0b0111: { // STRB
-                    std::string status = this->newCache->writeMemory(this->mInstr.result, this->mInstr.src1v[0], 4);
-                    if (status.rfind("Done", 0) == 0) { // starts with "Done"
+                case 6:{ // LDB
+                    // result holds the address, go fetch the value
+                    std::string readValue = this->newCache->readMemory(this->mInstr.result, 4);
+                    if (readValue.rfind("Done:", 0) == 0) { // starts with "Done:"
+                        this->mInstr.result =static_cast<int>(stoul(readValue.substr(6)));
                         return false;
                     }
                     else{
@@ -270,16 +376,43 @@ bool Pipeline::memory_access(){
 
                     break;
                 }
-                case 0b0000: // NOT
-                case 0b1000: // LDI
-                    break;   // nothing to do
-                case 0b0101: // HALT
+                case 2:{ // STR
+                    std::string status = this->newCache->writeMemory(this->mInstr.result, this->mInstr.src1v[0], 4);
+                    if (status.rfind("Done", 0) == 0) { // starts with "Done"
+                        return false;
+                    }
+                    else{
+                        this->newCache->clock++;
+                        return true;
+                    }
+                    break;
+                }
+                case 7: { // STRB
+                    std::string status = this->newCache->writeMemory(this->mInstr.result, this->mInstr.src1v[0], 4);
+                    if (status.rfind("Done", 0) == 0) { // starts with "Done"
+                        return false;
+                    }
+                    else{
+                        this->newCache->clock++;
+                        return true;
+                    }
+                    break;
+                }
+                case 0: // NOT
+                    break;
+                case 8: // LDI
+                    break;
+                case 5: // HALT
+                    break;
+                case 3:
+                    // TODO
+                    break;
+                case 4:
+                    // TODO
                     break;
             }
             break;
 
-        case 1: // Branch
-            break;
         default:
             return false;
     }
@@ -296,7 +429,7 @@ void Pipeline::write_back(){
             int opcode = this->wInstr.opcode;
 
             // CMP and CMPI update Condition Register instead of writing to a register
-            if(opcode == 0b11100 || opcode == 0b11111){
+            if(opcode == 27 || opcode == 30){
                 int result = this->wInstr.result;
                 int N = (result < 0) ? 1 : 0;  // Negative
                 int Z = (result == 0) ? 1 : 0; // Zero
@@ -308,20 +441,45 @@ void Pipeline::write_back(){
 
             // All other ALU ops write to dest register
             // Decrement pending
-            intRegs.r[this->wInstr.destv[0]] = this->wInstr.result;
-            pendRegs.r[this->wInstr.destv[0]]--;
+            if((opcode >= 0 && opcode <= 11) || (opcode >= 15 && opcode <= 26)){
+                intRegs.r[this->wInstr.destv[0]] = this->wInstr.result;
+                pendRegs.r[this->wInstr.destv[0]]--;
+                break;
+            }
+
+            if(opcode == 12 || opcode == 13 || opcode == 14){
+                // TODO
+                break;
+
+            }
+            if(opcode == 28){
+                // TODO
+                break;
+
+            }
+            // VSUM
+            if(opcode == 29){
+                // TODO
+                break;
+            }
 
             break;
         }
 
         case 2: {  // Miscellaneous
             int opcode = this->wInstr.opcode;
-            if(opcode == 0b0010 || opcode == 0b0111 || opcode == 0b101){
+            if(opcode == 2 || opcode == 5 || opcode == 7 || opcode == 4){
                 // STR / STRB, already written in M, nothing to do
                 // HALT nothing to do
+                // VSTR nothing to do
+            }
+            // VLD
+            else if(opcode == 3){
+                // TODO
+                break;
             }
             else{
-                // LD, LDB, LDI, NOT, all write result to dest register
+                // LD, LDB, LDI, NOT all write result to dest register
                 intRegs.r[this->wInstr.destv[0]] = this->wInstr.result;
                 pendRegs.r[this->wInstr.destv[0]]--;
             }
@@ -361,6 +519,9 @@ void Pipeline::write_back(){
             break;
 
         }
+
+        default:
+            break;
     }
 
     // For all non-branch instructions, advance PC by 1
@@ -375,32 +536,32 @@ int Pipeline::ALU_helper(int opcode, int a, int b) {
 
     switch(opcode){
 
-        case 0b00000: return a + b;                                          // ADD
-        case 0b00001: return a - b;                                          // SUB
-        case 0b00010: return (b == 0) ? 0xFFFFFFFF : a / b;                  // DIV
-        case 0b00011: return a * b;                                          // MUL
-        case 0b00100: return (b == 0) ? a : a % b;                           // MOD
-        case 0b00101: return a >> b;                                         // ASR
-        case 0b00111: return a << b;                                         // ASL
-        case 0b01000: return (unsigned int)a >> b;                           // LSR
-        case 0b01001: return a << b;                                         // LSL
-        case 0b01010: return a & b;                                          // AND
-        case 0b01011: return a | b;                                          // OR
-        case 0b01100: return a ^ b;                                          // XOR
-        case 0b10000: return a + b;                                          // ADDI
-        case 0b10001: return a - b;                                          // SUBI
-        case 0b10010: return a * b;                                          // MULI
-        case 0b11000: return (b == 0) ? 0xFFFFFFFF : a / b;                  // DIVI
-        case 0b11001: return (b == 0) ? a : a % b;                           // MODI
-        case 0b10011: return a >> b;                                         // ASRI
-        case 0b10100: return a << b;                                         // ASLI
-        case 0b11010: return (unsigned int)a >> b;                           // LSRI
-        case 0b11011: return a << b;                                         // LSLI
-        case 0b10101: return a & b;                                          // ANDI
-        case 0b10110: return a | b;                                          // ORI
-        case 0b10111: return a ^ b;                                          // XORI
-        case 0b11100: return a - b;                                          // CMP
-        case 0b11111: return a - b;                                          // CMPI
+        case 0: return a + b;                                          // ADD
+        case 1: return a - b;                                          // SUB
+        case 2: return (b == 0) ? 0xFFFFFFFF : a / b;                  // DIV
+        case 3: return a * b;                                          // MUL
+        case 4: return (b == 0) ? a : a % b;                           // MOD
+        case 5: return a >> b;                                         // ASR
+        case 6: return a << b;                                         // ASL
+        case 7: return (unsigned int)a >> b;                           // LSR
+        case 8: return a << b;                                         // LSL
+        case 9: return a & b;                                          // AND
+        case 10: return a | b;                                          // OR
+        case 11: return a ^ b;                                          // XOR
+        case 15: return a + b;                                          // ADDI
+        case 16: return a - b;                                          // SUBI
+        case 17: return a * b;                                          // MULI
+        case 23: return (b == 0) ? 0xFFFFFFFF : a / b;                  // DIVI
+        case 24: return (b == 0) ? a : a % b;                           // MODI
+        case 18: return a >> b;                                         // ASRI
+        case 19: return a << b;                                         // ASLI
+        case 25: return (unsigned int)a >> b;                           // LSRI
+        case 26: return a << b;                                         // LSLI
+        case 20: return a & b;                                          // ANDI
+        case 21: return a | b;                                          // ORI
+        case 22: return a ^ b;                                          // XORI
+        case 27: return a - b;                                          // CMP
+        case 30: return a - b;                                          // CMPI
         default:      return 0;
 
     }
