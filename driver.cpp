@@ -13,58 +13,42 @@ void single_clock_cycle(Pipeline* pipeline) {
         intRegs.r[13] = 0;
     }
 
-    // Handle squash after write_back
-    if(pipeline->squashed){
-        pipeline->fInstr.address=-2;
-        pipeline->dInstr.address=-2;
-        pipeline->eInstr.address=-2;
-        pipeline->mInstr.address=-2;
-        pipeline->wInstr.address=-2;
-        pipeline->wInstr.is_stalled=false;
-
-        // pipeline->fInstr  = InstructionObject{.bin_instr=-2};
-        // pipeline->fInstr.bin_instr = -1;
-        //pipeline->fInstr.is_stalled = true;
-        // pipeline->dInstr = InstructionObject{.bin_instr=-2};
-        // //pipeline->dInstr.is_stalled = true;
-        // pipeline->eInstr = InstructionObject{.bin_instr=-2};
-        // //pipeline->eInstr.is_stalled = true;
-        // pipeline->mInstr = InstructionObject{.bin_instr=-2};
-        // //pipeline->mInstr.is_stalled = true;
-        // pipeline->wInstr = InstructionObject{.bin_instr=-2};  // ADD THIS
-        //pipeline->wInstr.is_stalled = true;
-        pipeline->squashed = false;
-
-    }
-
     curClockCycle = pipeline -> global_clock;
     (pipeline->global_clock)++;
 
+    // Handle squash after write_back
+    if(pipeline->squashed){
+        //pipeline->fInstr.is_squashed=true;
+        pipeline->dInstr.is_squashed=true;
+        pipeline->dInstr.is_blocked=false;
+
+        pipeline->eInstr.is_squashed=true;
+        pipeline->eInstr.is_blocked=false;
+
+        pipeline->mInstr.is_squashed=true;
+        pipeline->mInstr.is_blocked=false;
+
+        pipeline->wInstr.is_squashed=true;
+        pipeline->wInstr.is_blocked=false;
+
+        pipeline->squashed = false;
+
+    }
     // Execute logic for each stage (Internal state changes only)
-    // pipeline->write_back();
-    // bool is_mwaiting = pipeline->memory_access();
-    // pipeline->execute();
-    // bool is_dwaiting = pipeline->decode();
-    // bool is_fwaiting = pipeline->fetch();
     std::cout << "Clock = " << curClockCycle << ", PC = " << intRegs.r[13] << std::endl;
-    std::cout << "Running W..." << std::endl;
     pipeline->write_back();
-    std::cout << "Running M..." << std::endl;
     bool is_mwaiting = pipeline->memory_access();
-    std::cout << "Running E..." << std::endl;
     pipeline->execute();
-    std::cout << "Running D..." << std::endl;
     bool is_dwaiting = pipeline->decode();
-    std::cout << "Running F..." << std::endl;
     bool is_fwaiting = pipeline->fetch();
-    std::cout << "Done with stages..." << std::endl;
+    std::cout << "Done with pipeline stages..." << std::endl;
 
 
     /************************DEBUG PRINTS***************************/
     // Print state of all instruction structs after stage execution
     auto printInstr = [](const std::string& name, const InstructionObject& instr){
         std::cout << name << ": ";
-        if(instr.address == -2){
+        if(instr.is_squashed){
             std::cout << "[SQUASHED]";
             if(instr.is_stalled == false){
                 std::cout << "bin=" << instr.bin_instr
@@ -112,76 +96,78 @@ void single_clock_cycle(Pipeline* pipeline) {
 
     // Assign blocks and stalls: blocks propagate backwards, stalls go forward
     // Forward instruction struct when possible
+    
+    // Handles stage M
+    if (is_mwaiting) {
+        pipeline->mInstr.is_blocked = true;
+        pipeline->eInstr.is_blocked = true;
+        if (!pipeline->wInstr.is_blocked) {
+            pipeline->wInstr = InstructionObject{};
+            pipeline->wInstr.is_stalled = true;
+        }
+    }
+    else { // M pass data on, W is never blocked
+        pipeline->mInstr.is_blocked = false;
+        pipeline->eInstr.is_blocked = false;
+        pipeline->wInstr = pipeline->mInstr;
+    }
 
-    // else {
-        // Handles stage M
-        if (is_mwaiting) {
-            pipeline->mInstr.is_blocked = true;
-            pipeline->eInstr.is_blocked = true;
-            if (!pipeline->wInstr.is_blocked) {
-                pipeline->wInstr = InstructionObject{};
-                pipeline->wInstr.is_stalled = true;
-            }
+    // Handles stage E
+    if(pipeline->eInstr.is_squashed){
+        // if E is squashed then all other stages are squashed, forward squashed instruction
+        pipeline->mInstr = pipeline->eInstr;
+    }
+    else if(pipeline->eInstr.is_blocked){
+        // E can only become blocked from M, if E is blocked, send back block to D
+        pipeline->dInstr.is_blocked = true;
+        if (!pipeline->mInstr.is_blocked) {
+            // send stall forward if M is not blocked
+            pipeline->mInstr = InstructionObject{};
+            pipeline->mInstr.is_stalled = true;
         }
-        else { // M pass data on, W is never blocked
-            pipeline->mInstr.is_blocked = false;
-            pipeline->eInstr.is_blocked = false;
-            pipeline->wInstr = pipeline->mInstr;
-        }
-
-        // Handles stage E
-        if(pipeline->eInstr.is_blocked){ 
-            // E can only become blocked from M, if E is blocked, send back block to D
-            pipeline->dInstr.is_blocked = true;
-            if (!pipeline->mInstr.is_blocked) {
-                // send stall forward if M is not blocked
-                pipeline->mInstr = InstructionObject{};
-                pipeline->mInstr.is_stalled = true;
-            }
-        }
-        else { // if E is not blocked 
-            pipeline->dInstr.is_blocked = false; // Unblock D (D can block itself again if waiting)
-            if (!pipeline->mInstr.is_blocked) { // M is not blocked, forward instruction struct
-                pipeline->mInstr = pipeline->eInstr;
-                pipeline->dInstr.is_blocked = false;
-            }
-        }
-
-        // Handles stage D 
-        if(is_dwaiting) {
-            pipeline->dInstr.is_blocked = true;
-            pipeline->fInstr.is_blocked = true; 
-            if (!pipeline->eInstr.is_blocked) {//Forward stall if E unblocked
-                pipeline->eInstr.is_stalled = true;
-            }
-        }
-        else { // if D is not blocked, then E is not blocked, forward instruction struct
-            pipeline->fInstr.is_blocked = false; // Unblock F (F can block itself again if waiting)
+    }
+    else { // if E is not blocked and not squashed
+        pipeline->dInstr.is_blocked = false; // Unblock D (D can block itself again if waiting)
+        if (!pipeline->mInstr.is_blocked) { // M is not blocked, forward instruction struct
+            pipeline->mInstr = pipeline->eInstr;
             pipeline->dInstr.is_blocked = false;
-            pipeline->eInstr = pipeline->dInstr; 
+        }
+    }
+
+    // Handles stage D 
+    if(is_dwaiting) {
+        pipeline->dInstr.is_blocked = true;
+        pipeline->fInstr.is_blocked = true; 
+        if (!pipeline->eInstr.is_blocked) {//Forward stall if E unblocked
+            pipeline->eInstr.is_stalled = true;
+        }
+    }
+    else { // if D is not blocked, then E is not blocked, forward instruction struct
+        pipeline->fInstr.is_blocked = false; // Unblock F (F can block itself again if waiting)
+        pipeline->dInstr.is_blocked = false;
+        pipeline->eInstr = pipeline->dInstr; 
+    }
+
+    // Handles stage F 
+    if(is_fwaiting) {
+        pipeline->fInstr.is_blocked = true;
+        // Check for blocking not waiting, D might not be waiting for anything but blocked by another stage
+        if (!pipeline->dInstr.is_blocked) {
+            pipeline->dInstr.is_stalled = true;
+        }
+    }
+    else {
+        pipeline->fInstr.is_blocked = false;
+        if (!pipeline->dInstr.is_blocked) {
+            pipeline->dInstr = pipeline-> fInstr;
+            // Only increment PC if we forwarded a real instruction
+            if(pipeline->fInstr.bin_instr != -1){
+                intRegs.r[13]++;
+            }
+            // fInstr will be updated in the next fetch if successful 
         }
 
-        // Handles stage F 
-        if(is_fwaiting) {
-            pipeline->fInstr.is_blocked = true;
-            // Check for blocking not waiting, D might not be waiting for anything but blocked by another stage
-            if (!pipeline->dInstr.is_blocked) {
-                pipeline->dInstr.is_stalled = true;
-            }
-        }
-        else {
-            pipeline->fInstr.is_blocked = false;
-            if (!pipeline->dInstr.is_blocked) {
-                pipeline->dInstr = pipeline-> fInstr;
-                // Only increment PC if we forwarded a real instruction
-                if(pipeline->fInstr.bin_instr != -1){
-                    intRegs.r[13]++;
-                }
-                // fInstr will be updated in the next fetch if successful 
-            }
-
-        }
-    // }
+    }
 }
 
 

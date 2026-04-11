@@ -20,6 +20,7 @@ struct InstructionObject {
     int result     = -1;
     bool is_stalled = false;
     bool is_blocked = false;
+    bool is_squashed = false;
     bool halt_signal = false;
 };
 
