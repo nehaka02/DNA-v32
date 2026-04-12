@@ -6,6 +6,9 @@
 #include "cache.h"
 #include "pipeline.h"
 #include "registers.h"
+#include <QLabel>
+#include <QSet>
+
 
 namespace Ui { class MainWindow; }
 
@@ -24,6 +27,8 @@ private slots:
     void onRun();
     void onStep();
     void onReset();
+    void onSetBreakpoint();
+    void onClearBreakpoint();
 
 private:
     Ui::MainWindow *ui;
@@ -32,6 +37,9 @@ private:
     Cache*    m_cache    = nullptr;
     Pipeline* m_pipeline = nullptr;
     bool      m_machineActive = false;
+    /*int m_breakpoint = -1;*/ // -1 means no breakpoint
+    QSet<int> m_breakpoints;
+    QLabel* m_breakpointLabel = nullptr;
 
     void initSimulator();
     void runLoop();

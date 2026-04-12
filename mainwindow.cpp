@@ -6,8 +6,10 @@
 #include <QColor>
 #include <fstream>
 #include <sstream>
+#include <cstring>
 #include <iostream>
 #include <QHeaderView>
+#include <QInputDialog>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -20,6 +22,11 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->actionRun,   &QAction::triggered, this, &MainWindow::onRun);
     connect(ui->actionStep,  &QAction::triggered, this, &MainWindow::onStep);
     connect(ui->actionReset, &QAction::triggered, this, &MainWindow::onReset);
+    connect(ui->actionsetBreakpoint, &QAction::triggered, this, &MainWindow::onSetBreakpoint);
+    connect(ui->actionclearBreakpoint, &QAction::triggered, this, &MainWindow::onClearBreakpoint);
+
+    m_breakpointLabel = new QLabel("Breakpoint: none");
+    ui->toolBar->addWidget(m_breakpointLabel);
 
     initSimulator();
 
@@ -57,6 +64,12 @@ void MainWindow::initSimulator()
     m_memory = new Memory();
     m_cache  = new Cache(m_memory);
     m_machineActive = true;
+
+
+    // Clear all registers
+    for (int i = 0; i < 16; i++) {
+        intRegs.r[i] = 0;
+    }
 
     std::ifstream file("demo_commands2.txt");
     if (!file.is_open()) {
@@ -104,19 +117,118 @@ void MainWindow::onReset()
     refresh();
 }
 
+// void MainWindow::onSetBreakpoint()
+// {
+//     bool ok;
+//     int address = QInputDialog::getInt(
+//         this,
+//         "Set Breakpoint",
+//         "Enter PC address:",
+//         m_breakpoint,  // default value
+//         0,             // min
+//         8192,          // max
+//         1,             // step
+//         &ok
+//         );
+//     if (ok) {
+//         m_breakpoint = address;
+//         m_breakpointLabel->setText(QString("Breakpoint: PC=%1").arg(m_breakpoint));
+//         std::cout << "Breakpoint set at PC=" << m_breakpoint << std::endl;
+//     }
+// }
+
+void MainWindow::onSetBreakpoint()
+{
+    bool ok;
+    int address = QInputDialog::getInt(
+        this, "Set Breakpoint", "Enter PC address:",
+        0, 0, 8192, 1, &ok
+        );
+    if (ok) {
+        m_breakpoints.insert(address);
+        QStringList list;
+        for (int bp : m_breakpoints) list.append(QString::number(bp));
+        m_breakpointLabel->setText("Breakpoints: " + list.join(", "));
+    }
+}
+
+// void MainWindow::onClearBreakpoint()
+// {
+//     m_breakpoint = -1;
+//     m_breakpointLabel->setText("Breakpoint: none");
+// }
+
+void MainWindow::onClearBreakpoint()
+{
+    m_breakpoints.clear();
+    m_breakpointLabel->setText("Breakpoints: none");
+}
+
+// void MainWindow::runLoop()
+// {
+//     int i = 0;
+//     while (m_machineActive && i < 30) {
+//         single_clock_cycle(m_pipeline);
+
+//         if (m_pipeline->wInstr.opcode == 5) {
+//             m_machineActive = false;
+//             std::cout << "HALT encountered." << std::endl;
+//         }
+//         if (intRegs.r[13] >= 8192) m_machineActive = false;
+
+//         i++;
+//     }
+//     refresh();
+// }
+
+// void MainWindow::runLoop()
+// {
+//     int i = 0;
+//     while (m_machineActive && i < 30) {
+//         single_clock_cycle(m_pipeline);
+
+//         if (m_pipeline->wInstr.opcode == 5) {
+//             m_machineActive = false;
+//             std::cout << "HALT encountered." << std::endl;
+//         }
+//         if (intRegs.r[13] >= 8192) m_machineActive = false;
+
+//         // Check breakpoint
+//         // if (m_breakpoint != -1 && intRegs.r[13] == m_breakpoint) {
+//         //     std::cout << "Breakpoint hit at PC=" << m_breakpoint << std::endl;
+//         //     break;
+//         // }
+//         if (m_breakpoints.contains(intRegs.r[13])) {
+//             std::cout << "Breakpoint hit at PC=" << intRegs.r[13] << std::endl;
+//             break;
+//         }
+
+//         i++;
+//     }
+//     refresh();
+// }
 void MainWindow::runLoop()
 {
     int i = 0;
     while (m_machineActive && i < 30) {
         single_clock_cycle(m_pipeline);
+        i++;
 
         if (m_pipeline->wInstr.opcode == 5) {
             m_machineActive = false;
             std::cout << "HALT encountered." << std::endl;
+            break;
         }
-        if (intRegs.r[13] >= 8192) m_machineActive = false;
+        if (intRegs.r[13] >= 8192) {
+            m_machineActive = false;
+            break;
+        }
 
-        i++;
+        // Only check breakpoint after at least one cycle
+        if (m_breakpoints.contains(intRegs.r[13])) {
+            std::cout << "Breakpoint hit at PC=" << intRegs.r[13] << std::endl;
+            break;
+        }
     }
     refresh();
 }

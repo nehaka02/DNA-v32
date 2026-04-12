@@ -9,6 +9,14 @@ Cache::Cache(Memory* memory) {
     this->currentlyServicing=0;
     this->memory=memory;
     this->clock=0;
+
+    // initializing cache to 0
+
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            cache_memory[i][j] = 0;
+        }
+    }
 }
 
 //FIXME: Refractor memory to cache mapping into a function call?

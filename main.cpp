@@ -115,85 +115,94 @@ RAM should have 4-words in a line if cache has 4-words in a line.
 
 // }
 
+// int main(int argc, char *argv[])
+// {
+//     // QCoreApplication a(argc, argv);
+//     QApplication a(argc, argv);
+//     MainWindow w;
+//     w.show();
+
+//     std::cout << "DNA Simulator Running..." << std::endl;
+
+//     std::cout << "Command Formats" << std::endl;
+//     std::cout << "Write command format: W [memory address][data][pipeline stage]" << std::endl;
+//     std::cout << "Read command format: R [memory address][pipeline stage]" << std::endl;
+//     std::cout << "View cache command format: V [1]" << std::endl;
+//     std::cout << "View cache block command format: V [1] [memory address]" << std::endl;
+//     std::cout << "View RAM range command format: V [0] [start line] [end line]" << std::endl;
+//     std::cout << "\n" << std::endl;
+
+//     Memory newMemory;
+//     Cache* newCache = new Cache(&newMemory);
+
+//     // For reading from a file
+//     std::ifstream file("demo_commands2.txt");
+//     std::string userInput;
+
+//     // Make sure to set working directory to DNA-v32
+//     std::cout << "Looking for file in: " << std::filesystem::current_path() << std::endl;
+//     if (!file.is_open()) {
+//         std::cout << "Error: could not open file" << std::endl;
+//         return 1;
+//     }
+
+//     while (std::getline(file, userInput)) {
+
+//         // Read the entire line from file into the string
+//         std::istringstream input(userInput);
+//         std::vector<std::string> tokens;
+//         std::string token;
+
+//         // Read tokens separated by a space
+//         while (input >> token) {
+//             tokens.push_back(token);
+//         }
+
+//         // parseInput logic
+//         parseInput(tokens, newCache);
+
+//     }
+
+//     std::cout << "\n--- Memory Populated. Starting Pipeline ---\n" << std::endl;
+
+//     // Instantiate your pipeline passing the populated cache
+//     Pipeline* pipeline = new Pipeline(newCache);
+
+//     // Assume register 13 is the Program Counter (PC)
+//     // Set it to address 0 (or wherever your first instruction sits)
+//     // intRegs.r[13] = 0;
+
+//     // main.cpp simulation loop
+//     bool machine_active = true;
+//     int i;
+//     while (machine_active && i < 30) {
+//         single_clock_cycle(pipeline);
+
+//         // Check if the instruction currently in Write Back is a HALT
+//         if (pipeline->wInstr.opcode == 5) {
+//             machine_active = false;
+//             std::cout << "HALT encountered. Powering down..." << std::endl;
+//         }
+//         // if(pipeline->wInstr.halt_signal){
+//         //     machine_active = false;
+//         //     std::cout << "HALT encountered. Powering down..." << std::endl;
+//         // }
+//         extern Registers::IntegerRegs intRegs;
+//         // Safety break: stop if we run out of memory bounds
+//         if (intRegs.r[13] >= 8192) machine_active = false;
+
+//         i++;
+//     }
+
+//     // return 0;
+//     return a.exec();
+// }
+
+
 int main(int argc, char *argv[])
 {
-    // QCoreApplication a(argc, argv);
     QApplication a(argc, argv);
     MainWindow w;
     w.show();
-
-    std::cout << "DNA Simulator Running..." << std::endl;
-
-    std::cout << "Command Formats" << std::endl;
-    std::cout << "Write command format: W [memory address][data][pipeline stage]" << std::endl;
-    std::cout << "Read command format: R [memory address][pipeline stage]" << std::endl;
-    std::cout << "View cache command format: V [1]" << std::endl;
-    std::cout << "View cache block command format: V [1] [memory address]" << std::endl;
-    std::cout << "View RAM range command format: V [0] [start line] [end line]" << std::endl;
-    std::cout << "\n" << std::endl;
-
-    Memory newMemory;
-    Cache* newCache = new Cache(&newMemory);
-
-    // For reading from a file
-    std::ifstream file("demo_commands2.txt");
-    std::string userInput;
-
-    // Make sure to set working directory to DNA-v32
-    std::cout << "Looking for file in: " << std::filesystem::current_path() << std::endl;
-    if (!file.is_open()) {
-        std::cout << "Error: could not open file" << std::endl;
-        return 1;
-    }
-
-    while (std::getline(file, userInput)) {
-
-        // Read the entire line from file into the string
-        std::istringstream input(userInput);
-        std::vector<std::string> tokens;
-        std::string token;
-
-        // Read tokens separated by a space
-        while (input >> token) {
-            tokens.push_back(token);
-        }
-
-        // parseInput logic
-        parseInput(tokens, newCache);
-
-    }
-
-    std::cout << "\n--- Memory Populated. Starting Pipeline ---\n" << std::endl;
-
-    // Instantiate your pipeline passing the populated cache
-    Pipeline* pipeline = new Pipeline(newCache);
-
-    // Assume register 13 is the Program Counter (PC)
-    // Set it to address 0 (or wherever your first instruction sits)
-    // intRegs.r[13] = 0;
-
-    // main.cpp simulation loop
-    bool machine_active = true;
-    int i;
-    while (machine_active && i < 30) {
-        single_clock_cycle(pipeline);
-
-        // Check if the instruction currently in Write Back is a HALT
-        if (pipeline->wInstr.opcode == 5) {
-            machine_active = false;
-            std::cout << "HALT encountered. Powering down..." << std::endl;
-        }
-        // if(pipeline->wInstr.halt_signal){
-        //     machine_active = false;
-        //     std::cout << "HALT encountered. Powering down..." << std::endl;
-        // }
-        extern Registers::IntegerRegs intRegs;
-        // Safety break: stop if we run out of memory bounds
-        if (intRegs.r[13] >= 8192) machine_active = false;
-
-        i++;
-    }
-
-    // return 0;
     return a.exec();
 }

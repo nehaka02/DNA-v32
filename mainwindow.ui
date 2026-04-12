@@ -28,6 +28,8 @@
    <addaction name="actionRun"/>
    <addaction name="actionStep"/>
    <addaction name="actionReset"/>
+   <addaction name="actionsetBreakpoint"/>
+   <addaction name="actionclearBreakpoint"/>
   </widget>
   <widget class="QDockWidget" name="registerDock">
    <property name="windowTitle">
@@ -248,6 +250,22 @@
   <action name="actionReset">
    <property name="text">
     <string>Reset</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionsetBreakpoint">
+   <property name="text">
+    <string>setBreakpoint</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionclearBreakpoint">
+   <property name="text">
+    <string>clearBreakpoint</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>
