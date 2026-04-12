@@ -187,7 +187,7 @@ void MainWindow::refreshPipeline()
         QString text;
         QColor  color;
 
-        if (instr.address == -2) {
+        if (instr.is_squashed) {
             text  = "SQUASHED";
             color = Qt::red;
         } else if (instr.is_stalled) {
