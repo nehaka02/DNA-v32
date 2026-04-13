@@ -24,6 +24,9 @@ add_executable(DNA-v32
   registers.h
   driver.cpp driver.h
   mainwindow.h mainwindow.cpp mainwindow.ui
+  assembler.py
+  mnemonic_table.py
+
 )
 # target_link_libraries(DNA-v32 PRIVATE Qt${QT_VERSION_MAJOR}::Core)
 target_link_libraries(DNA-v32 PRIVATE Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Widgets)

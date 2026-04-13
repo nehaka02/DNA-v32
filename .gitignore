@@ -11,3 +11,15 @@ build/
 
 # Logs
 *.log
+
+# Qt_python
+*.autosave
+*.pro.user
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# General
+.DS_Store     
