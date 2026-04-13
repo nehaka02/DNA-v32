@@ -124,11 +124,12 @@ class Assembler:
         src2 = self.__reg_to_num(src2)
         return (type_code << 30) | (opcode << 25) | (dest << 21) | (src1 << 17) | (src2 << 13)
 
-
+    # Note: int (numStr, 0) allows auto detect so input can be 0x#### 0b###, or normal integer
     def __encode_immediate(self, type_code, opcode, dest, src1, immediate):
         # 17 bit immediate, 0x1FFFF is 17 1's
         dest = self.__reg_to_num(dest)
         src1 = self.__reg_to_num(src1)
+        immediate = int(immediate, 0)
         return (type_code << 30) | (opcode << 25) | (dest << 21) | (src1 << 17) | (immediate & 0x1FFFF)
 
 
@@ -140,6 +141,7 @@ class Assembler:
 
 
     def __encode_vector_misc(self, type_code, opcode, v_len, reg1, reg2):
+        v_len = int(v_len, 0)
         reg1 = self.__reg_to_num(reg1)
         reg2 = self.__reg_to_num(reg2)
         return (type_code << 30) | (opcode << 25) | ((v_len & 0x3) << 23) | (reg1 << 19) | (reg2 << 15)
@@ -154,6 +156,7 @@ class Assembler:
     def __encode_cmpi(self, type_code, opcode, src1, immediate):
         # 21 bit immediate, 0x1FFFFF is 21 1's
         src1 = self.__reg_to_num(src1)
+        immediate = int(immediate, 0)
         return (type_code << 30) | (opcode << 25) | (src1 << 21) | (immediate & 0x1FFFFF)
 
 
@@ -162,6 +165,8 @@ class Assembler:
         # Calculate offset if needed, else convert to binary store in machine code
         if offset in self.symbol_table:
             offset = self.symbol_table[offset] - location
+        else:
+            offset = int(offset, 0)
         return (type_code << 30) | (opcode << 26) | (offset & 0x3FFFFFF)
 
 
@@ -184,12 +189,14 @@ class Assembler:
         # 18 bit offset
         reg1 = self.__reg_to_num(reg1)
         reg2 = self.__reg_to_num(reg2)
+        offset = int(offset, 0)
         return (type_code << 30) | (opcode << 26) | (reg1 << 22) | (reg2 << 18) | (offset & 0x3FFFF)
 
 
     def __encode_ldi(self, type_code, opcode, dest, immediate):
         # 22 bit immediate
         dest = self.__reg_to_num(dest)
+        immediate = int(immediate, 0)
         return (type_code << 30) | (opcode << 26) | (dest << 22) | (immediate & 0x3FFFFF)
 
 
