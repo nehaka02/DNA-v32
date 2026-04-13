@@ -71,7 +71,7 @@ void MainWindow::initSimulator()
         intRegs.r[i] = 0;
     }
 
-    std::ifstream file("demo_commands2.txt");
+    std::ifstream file("demos/demo_commands2.txt");
     if (!file.is_open()) {
         std::cout << "Error: could not open demo_commands2.txt" << std::endl;
         return;

@@ -1,6 +1,6 @@
 # This Python file uses the following encoding: utf-8
 import sys
-from mnemonic_table import mnemonic_table
+from assembler.mnemonic_table import mnemonic_table
 
 
 class Assembler:
