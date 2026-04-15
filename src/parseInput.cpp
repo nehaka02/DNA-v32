@@ -18,12 +18,13 @@ std::string parseInput(std::vector<std::string> tokens, Cache* newCache) {
 
     switch(switchKey) {
     case 'W':{
-        int data = static_cast<int>(stoul(tokens[2]));
+        int data[4] = {};
+        data[0] = static_cast<int>(stoul(tokens[2]));
         int pipelineStage = std::stoi(tokens[3]);
 
         int memoryAddress = std::stoi(tokens[1]);
         std::cout << "Writing to memory..." << std::endl;
-        while(newCache->writeMemory(memoryAddress, data, pipelineStage) != "Done"){
+        while(newCache->writeMemory(memoryAddress, data, pipelineStage, false) != "Done"){
             newCache->clock++;
         }
         //printf("%d was written to %d, current clock cycle = \n", data, memoryAddress);
@@ -43,7 +44,7 @@ std::string parseInput(std::vector<std::string> tokens, Cache* newCache) {
         std::string readValue;
 
         while(true){
-            readValue = newCache->readMemory(memoryAddress, pipelineStage);
+            readValue = newCache->readMemory(memoryAddress, pipelineStage, false);
             if (readValue.rfind("Done:", 0) == 0) {  // starts with "Done:"
                 break;
             }

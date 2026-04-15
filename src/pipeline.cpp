@@ -1,5 +1,6 @@
 #include <string>
 #include <iostream>
+#include <sstream>
 
 #include "pipeline.h"
 #include "cache.h"
@@ -19,11 +20,14 @@ Pipeline::Pipeline(Cache* externalCache) {
 Registers::IntegerRegs intRegs;
 Registers::PendIntegerRegs pendRegs;
 
+Registers::VectorRegs vectorRegs;
+Registers::PendVectorRegs pendVectorRegs;
+
 
 bool Pipeline::fetch(){
     int current_pc = intRegs.r[13];
 
-    std::string readValue = this->newCache->readMemory(current_pc, 1);
+    std::string readValue = this->newCache->readMemory(current_pc, 1, false);
     if (readValue.rfind("Done:", 0) == 0) {  // starts with "Done:"
         this->fInstr.address = current_pc;
         this->fInstr.bin_instr = static_cast<int>(stoul(readValue.substr(6)));
@@ -77,9 +81,9 @@ bool Pipeline::decode(){
                     return true;
                 }
                 //this->dInstr.destv.push_back(dest);
-                this->dInstr.destv.push_back(dest);
-                this->dInstr.src1v.push_back(intRegs.r[src1]);
-                this->dInstr.src2v.push_back(intRegs.r[src2]);
+                this->dInstr.destv[0] = dest;
+                this->dInstr.src1v[0] = intRegs.r[src1];
+                this->dInstr.src2v[0] = intRegs.r[src2];
 
                 pendRegs.r[dest]++;
                 return false;
@@ -98,8 +102,8 @@ bool Pipeline::decode(){
                 if (pendRegs.r[dest] != 0 || pendRegs.r[src1] != 0) {
                     return true;
                 }
-                this->dInstr.destv.push_back(dest);
-                this->dInstr.src1v.push_back(intRegs.r[src1]);
+                this->dInstr.destv[0] = dest;
+                this->dInstr.src1v[0] = intRegs.r[src1];
 
                 pendRegs.r[dest]++;
                 return false;
@@ -111,8 +115,8 @@ bool Pipeline::decode(){
                 if (pendRegs.r[src1] != 0 || pendRegs.r[src2] != 0) {
                     return true;
                 }
-                this->dInstr.src1v.push_back(intRegs.r[src1]);
-                this->dInstr.src2v.push_back(intRegs.r[src2]);
+                this->dInstr.src1v[0] = intRegs.r[src1];
+                this->dInstr.src2v[0] = intRegs.r[src2];
 
                 pendRegs.r[14]++; // flags register
                 return false;
@@ -135,7 +139,7 @@ bool Pipeline::decode(){
                 if(pendRegs.r[src1] != 0 ) {
                     return true;
                 }
-                this->dInstr.src1v.push_back(intRegs.r[src1]);
+                this->dInstr.src1v[0] = intRegs.r[src1];
                 this->dInstr.immediate = immediate;
                 return false;
             }
@@ -155,7 +159,7 @@ bool Pipeline::decode(){
             }
             if(opcode == 8) { // BX
                 int src = (bin >> 22) & 0b1111;
-                this->dInstr.src1v.push_back(intRegs.r[src]);
+                this->dInstr.src1v[0] = intRegs.r[src];
             }
             if(opcode == 7) { // LR is pending
                 pendRegs.r[12]++;
@@ -169,24 +173,64 @@ bool Pipeline::decode(){
             int opcode = (bin >> 26) & 0b1111;
             this->dInstr.opcode = opcode;
 
-            // NOT, LD, STR
-            if(opcode == 0 || opcode == 1 || opcode == 2){
+            // NOT, LD
+            if(opcode == 0 || opcode == 1 ){
                 int dest = (bin >> 22) & 0b1111;
                 int src = (bin >> 18) & 0b1111;
                 if (pendRegs.r[dest] != 0 || pendRegs.r[src] != 0) {
                     return true;
                 }
-                this->dInstr.destv.push_back(dest);
-                this->dInstr.src1v.push_back(intRegs.r[src]);
+                this->dInstr.destv[0] = dest; // only putting register number in destv
+                this->dInstr.src1v[0] = intRegs.r[src];
 
                 pendRegs.r[dest]++;
                 return false;
             }
 
-            // VLD and VSTR
-            if(opcode == 3 || opcode == 4){
-                // TODO
-                break;
+            // STR
+            if(opcode == 2){
+                int dest = (bin >> 22) & 0b1111;
+                int src = (bin >> 18) & 0b1111;
+                if (pendRegs.r[dest] != 0 || pendRegs.r[src] != 0) {
+                    return true;
+                }
+                this->dInstr.destv[0] = intRegs.r[dest]; // dest contains memory address
+                this->dInstr.src1v[0] = intRegs.r[src]; // src contains value to write to memory
+
+                // nothing gets put in pending registers because we aren't writing to any registers
+
+                return false;
+            }
+
+            // VLD
+            // IMPORTANT: The src register contains the memory address of a vector, so it is an INT register! Due to register indirect addressing
+            if(opcode == 3){
+                int dest = (bin >> 22) & 0b1111;
+                int src = (bin >> 18) & 0b1111;
+                if (pendVectorRegs.q[dest] != 0 || pendRegs.r[src] != 0) {
+                    return true;
+                }
+                this->dInstr.destv[0] = dest; // only putting register number in destv
+                this->dInstr.src1v[0] = intRegs.r[src]; // putting the memory address of the source vector in src1v
+
+                pendVectorRegs.q[dest]++;
+                return false;
+
+            }
+
+            // VSTR
+            if(opcode == 4){
+                int dest = (bin >> 22) & 0b1111;
+                int src = (bin >> 18) & 0b1111;
+                if (pendRegs.r[dest] != 0 || pendVectorRegs.q[src] != 0) {
+                    return true;
+                }
+                this->dInstr.destv[0] = intRegs.r[dest]; // dest contains memory address
+                for(int i = 0; i < 4; i++){this->dInstr.src1v[i] = vectorRegs.q[src][i];} // src contains value to write to memory
+
+                // nothing gets put in pending registers because we aren't writing to any registers
+
+                return false;
             }
 
             // Halt
@@ -204,8 +248,8 @@ bool Pipeline::decode(){
                     return true;
                 }
 
-                this->dInstr.destv.push_back(dest);
-                this->dInstr.src1v.push_back(intRegs.r[base]);
+                this->dInstr.destv[0] = dest;
+                this->dInstr.src1v[0] = intRegs.r[base];
                 this->dInstr.immediate = offset;
 
                 pendRegs.r[dest]++;
@@ -221,8 +265,8 @@ bool Pipeline::decode(){
                     return true;
                 }
 
-                this->dInstr.src1v.push_back(intRegs.r[src1]);
-                this->dInstr.src2v.push_back(intRegs.r[base]);
+                this->dInstr.src1v[0] = intRegs.r[src1];
+                this->dInstr.src2v[0] = intRegs.r[base];
                 this->dInstr.immediate = offset;
 
                 return false;
@@ -232,7 +276,7 @@ bool Pipeline::decode(){
                 int dest = (bin >> 22) & 0b1111;
                 int immediate = bin & 0x3FFFFF; // 22 bits
 
-                this->dInstr.destv.push_back(dest);
+                this->dInstr.destv[0] = dest;
                 this->dInstr.immediate = immediate;
 
                 pendRegs.r[dest]++;
@@ -262,7 +306,7 @@ void Pipeline::execute(){
         case 0:{
             // scalars
             if(opcode >= 0 && opcode <= 11 || opcode == 27){
-                this->eInstr.result = ALU_helper(
+                this->eInstr.result[0] = ALU_helper(
                     this->eInstr.opcode,
                     this->eInstr.src1v[0],
                     this->eInstr.src2v[0]
@@ -275,7 +319,7 @@ void Pipeline::execute(){
             }
             // scalar immediates
             if(opcode >= 15 && opcode <= 26 || opcode == 30){
-                this->eInstr.result = ALU_helper(
+                this->eInstr.result[0] = ALU_helper(
                     this->eInstr.opcode,
                     this->eInstr.src1v[0],
                     this->eInstr.immediate
@@ -301,28 +345,28 @@ void Pipeline::execute(){
         case 2:{ // Miscellaneous
             switch(this->eInstr.opcode){
                 case 0: // NOT
-                    this->eInstr.result = ~this->eInstr.src1v[0];
+                    this->eInstr.result[0] = ~this->eInstr.src1v[0];
                     break;
                 case 1: // LD
-                    this->eInstr.result = this->eInstr.src1v[0];
+                    this->eInstr.result[0] = this->eInstr.src1v[0];
                 case 2: // STR
-                    this->eInstr.result = this->eInstr.src1v[0];
+                    // do nothing
                     break;
                 case 3: // VLD
-                    // TODO
+                    this->eInstr.result[0] = this->eInstr.src1v[0];
                     break;
                 case 4: // VSTR
-                    // TODO
+                    // do nothing
                     break;
                 case 5: // HALT (do nothing)
                     break;
                 case 6: // LDB
-                    this->eInstr.result = this->eInstr.src1v[0] + this->eInstr.immediate;
+                    this->eInstr.result[0] = this->eInstr.src1v[0] + this->eInstr.immediate;
                 case 7: // STRB
-                    this->eInstr.result = this->eInstr.src2v[0] + this->eInstr.immediate;
+                    this->eInstr.result[0] = this->eInstr.src2v[0] + this->eInstr.immediate;
                     break;
                 case 8: // LDI
-                    this->eInstr.result = this->eInstr.immediate;
+                    this->eInstr.result[0] = this->eInstr.immediate;
                     break;
             }
             break;
@@ -350,9 +394,9 @@ bool Pipeline::memory_access(){
             switch(this->mInstr.opcode){
                 case 1:{ // LD
                     // result holds the address, go fetch the value
-                    std::string readValue = this->newCache->readMemory(this->mInstr.result, 4);
+                    std::string readValue = this->newCache->readMemory(this->mInstr.result[0], 4, false);
                     if (readValue.rfind("Done:", 0) == 0) { // starts with "Done:"
-                        this->mInstr.result =static_cast<int>(stoul(readValue.substr(6)));
+                        this->mInstr.result[0] =static_cast<int>(stoul(readValue.substr(6)));
                         return false;
                     }
                     else{
@@ -364,9 +408,9 @@ bool Pipeline::memory_access(){
                 }
                 case 6:{ // LDB
                     // result holds the address, go fetch the value
-                    std::string readValue = this->newCache->readMemory(this->mInstr.result, 4);
+                    std::string readValue = this->newCache->readMemory(this->mInstr.result[0], 4, false);
                     if (readValue.rfind("Done:", 0) == 0) { // starts with "Done:"
-                        this->mInstr.result =static_cast<int>(stoul(readValue.substr(6)));
+                        this->mInstr.result[0] =static_cast<int>(stoul(readValue.substr(6)));
                         return false;
                     }
                     else{
@@ -377,7 +421,7 @@ bool Pipeline::memory_access(){
                     break;
                 }
                 case 2:{ // STR
-                    std::string status = this->newCache->writeMemory(this->mInstr.result, this->mInstr.src1v[0], 4);
+                    std::string status = this->newCache->writeMemory(this->mInstr.destv[0], this->mInstr.src1v, 4, false);
                     if (status.rfind("Done", 0) == 0) { // starts with "Done"
                         return false;
                     }
@@ -388,7 +432,7 @@ bool Pipeline::memory_access(){
                     break;
                 }
                 case 7: { // STRB
-                    std::string status = this->newCache->writeMemory(this->mInstr.result, this->mInstr.src1v[0], 4);
+                    std::string status = this->newCache->writeMemory(this->mInstr.result[0], this->mInstr.src1v, 4, false);
                     if (status.rfind("Done", 0) == 0) { // starts with "Done"
                         return false;
                     }
@@ -404,12 +448,48 @@ bool Pipeline::memory_access(){
                     break;
                 case 5: // HALT
                     break;
-                case 3:
-                    // TODO
+                // Enforced 4-word alignment for vector loads and stores!
+                case 4:{ // VSTR
+                    std::string status = this->newCache->writeMemory((this->mInstr.destv[0])%4, this->mInstr.src1v, 4, true);
+                    if (status.rfind("Done", 0) == 0) { // starts with "Done"
+                        return false;
+                    }
+                    else{
+                        this->newCache->clock++;
+                        return true;
+                    }
                     break;
-                case 4:
-                    // TODO
-                    break;
+                }
+                case 3:{ // VLD
+                    // result holds the address, go fetch the value
+                    std::string readValue = this->newCache->readMemory((this->mInstr.result[0])%4, 4, true);
+
+                    if (readValue.rfind("Done:", 0) == 0) {
+
+                        // Remove "Done: "
+                        std::string values = readValue.substr(6);
+
+                        std::stringstream ss(values);
+                        std::string token;
+                        int i = 0;
+
+                        while (std::getline(ss, token, ',') && i < 4) {
+                            // Remove leading space if present
+                            if (!token.empty() && token[0] == ' ') {
+                                token = token.substr(1);
+                            }
+
+                            this->mInstr.result[i++] = std::stoi(token);
+                        }
+
+                        // Now result contains vector
+                        return false;
+                    }
+                    else{
+                        this->newCache->clock++;
+                        return true;
+                    }
+                }
             }
             break;
 
@@ -430,7 +510,7 @@ void Pipeline::write_back(){
 
             // CMP and CMPI update Condition Register instead of writing to a register
             if(opcode == 27 || opcode == 30){
-                int result = this->wInstr.result;
+                int result = this->wInstr.result[0];
                 int N = (result < 0) ? 1 : 0;  // Negative
                 int Z = (result == 0) ? 1 : 0; // Zero
                 int V = (result > this->wInstr.src1v[0]) ? 1 : 0;  // Overflow
@@ -442,7 +522,7 @@ void Pipeline::write_back(){
             // All other ALU ops write to dest register
             // Decrement pending
             if((opcode >= 0 && opcode <= 11) || (opcode >= 15 && opcode <= 26)){
-                intRegs.r[this->wInstr.destv[0]] = this->wInstr.result;
+                intRegs.r[this->wInstr.destv[0]] = this->wInstr.result[0];
                 pendRegs.r[this->wInstr.destv[0]]--;
                 break;
             }
@@ -476,11 +556,13 @@ void Pipeline::write_back(){
             // VLD
             else if(opcode == 3){
                 // TODO
+                for(int i = 0; i < 4; i++){vectorRegs.q[this->wInstr.destv[0]][i] = this->wInstr.result[i];}
+                pendVectorRegs.q[this->wInstr.destv[0]]--;
                 break;
             }
             else{
                 // LD, LDB, LDI, NOT all write result to dest register
-                intRegs.r[this->wInstr.destv[0]] = this->wInstr.result;
+                intRegs.r[this->wInstr.destv[0]] = this->wInstr.result[0];
                 pendRegs.r[this->wInstr.destv[0]]--;
             }
             break;

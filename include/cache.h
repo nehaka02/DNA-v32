@@ -3,6 +3,7 @@
 #include "memory.h"
 #include<string>
 
+
 class Cache
 {
 public:
@@ -17,8 +18,8 @@ public:
     int clock;
 
     Cache(Memory* memory);
-    std::string writeMemory(int address, int data, int pipelineStage);
-    std::string readMemory(int address, int pipelineStage);
+    std::string writeMemory(int address, const int data[4], int pipelineStage, bool isVector);
+    std::string readMemory(int address, int pipelineStage, bool isVector);
     int viewMemory(int address);
     void editCache(int address, int data);
     void printCache();

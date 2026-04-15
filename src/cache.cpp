@@ -19,7 +19,6 @@ Cache::Cache(Memory* memory) {
     }
 }
 
-//FIXME: Refractor memory to cache mapping into a function call?
 void Cache::decodeAddress(int address, int &line, int &index, int &offset, int &tag) {
     line   = (address / 4) % 8192;
     index  = line % 8;
@@ -29,7 +28,7 @@ void Cache::decodeAddress(int address, int &line, int &index, int &offset, int &
 
 // this method needs to check cache first
 // if address doesn't exist in cache, we need to load from memory and possibly evict a line from cache
- std::string Cache::readMemory(int address, int pipelineStage){
+ std::string Cache::readMemory(int address, int pipelineStage, bool isVector){
     // Currently servicing another pipeline stage
     if(this->currentlyServicing != 0 && this->currentlyServicing != pipelineStage) {
         return "Wait: memory is currently servicing another pipeline stage";
@@ -45,7 +44,18 @@ void Cache::decodeAddress(int address, int &line, int &index, int &offset, int &
             this->dramDelay = 0;
             this->currentlyServicing = 0;
             std::cout << "Cache Hit!" << std::endl;
-            return "Done: " + std::to_string(this->cache_memory[index][4 + offset]);
+            if(!isVector){
+                return "Done: " + std::to_string(this->cache_memory[index][4 + offset]);
+            }
+            else{
+                // we will enforce 4-word alignment of vectors in pipeline.cpp
+                std::string result = "Done: ";
+                for (int i = 0; i < 4; i++) {
+                    result += std::to_string(this->cache_memory[index][4 + i]);
+                    if (i < 3) result += ", ";
+                }
+                return result;
+            }
         }
 
         //Currently servicing no pipeline stage -> service requested pipeline stage
@@ -75,13 +85,25 @@ void Cache::decodeAddress(int address, int &line, int &index, int &offset, int &
                 this->cache_memory[index][4 + i] = this->memory->dram[line][i];
             }
             this->currentlyServicing = 0;
-            return "Done: " + std::to_string(this->cache_memory[index][4 + offset]);
+
+            // Return result (same logic as cache hit)
+            if (!isVector) {
+                return "Done: " + std::to_string(this->cache_memory[index][4 + offset]);
+            }
+            else {
+                std::string result = "Done: ";
+                for (int i = 0; i < 4; i++) {
+                    result += std::to_string(this->cache_memory[index][4 + i]);
+                    if (i < 3) result += ", ";
+                }
+                return result;
+            }
 
         }
     }
 }
 
-std::string Cache::writeMemory(int address, int data, int pipelineStage){
+std::string Cache::writeMemory(int address, const int data[4], int pipelineStage, bool isVector){
     if(this->currentlyServicing != 0 && this->currentlyServicing != pipelineStage){
         return "Wait: memory is currently servicing another pipeline stage";
     }
@@ -112,12 +134,29 @@ std::string Cache::writeMemory(int address, int data, int pipelineStage){
                 //set dirty bit to 0 and valid bit to 1
                 this->cache_memory[index][2] = 0;
                 this->cache_memory[index][3] = 1;
-                this->cache_memory[index][4 + offset] = data;
-                this->memory->dram[line][offset] = data;
+
+                if(!isVector){
+                    this->cache_memory[index][4 + offset] = data[0];
+                    this->memory->dram[line][offset] = data[0];
+                }
+                else{
+                    for (int i = 0; i < 4; i++) {
+                        this->cache_memory[index][4 + i] = data[i];
+                        this->memory->dram[line][i] = data[i];
+                    }
+                }
+
             }
             //write miss (no allocate)
             else{
-                this->memory->dram[line][offset] = data;
+                if(!isVector){
+                    this->memory->dram[line][offset] = data[0];
+                }
+                else{
+                    for (int i = 0; i < 4; i++) {
+                        this->memory->dram[line][i] = data[i];
+                    }
+                }
             }
 
             //Reset currentlyServicing variable to 0 to indicate no pipeline stage is being serviced

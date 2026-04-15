@@ -56,9 +56,9 @@ void single_clock_cycle(Pipeline* pipeline) {
                           << " opcode=" << instr.opcode
                           << " imm=" << instr.immediate
                           << " result=" << instr.result;
-                if(!instr.src1v.empty()) std::cout << " src1=" << instr.src1v[0];
-                if(!instr.src2v.empty()) std::cout << " src2=" << instr.src2v[0];
-                if(!instr.destv.empty()) std::cout << " dest=" << instr.destv[0];
+                if(std::size(instr.src1v) != 0) std::cout << " src1=" << instr.src1v[0];
+                if(std::size(instr.src2v) != 0) std::cout << " src2=" << instr.src2v[0];
+                if(std::size(instr.destv) != 0) std::cout << " dest=" << instr.destv[0];
             }
             else{
                  std::cout << "[BUBBLE]";
@@ -73,9 +73,9 @@ void single_clock_cycle(Pipeline* pipeline) {
                       << " opcode=" << instr.opcode
                       << " imm=" << instr.immediate
                       << " result=" << instr.result;
-            if(!instr.src1v.empty()) std::cout << " src1=" << instr.src1v[0];
-            if(!instr.src2v.empty()) std::cout << " src2=" << instr.src2v[0];
-            if(!instr.destv.empty()) std::cout << " dest=" << instr.destv[0];
+            if(std::size(instr.src1v) != 0) std::cout << " src1=" << instr.src1v[0];
+            if(std::size(instr.src2v) != 0) std::cout << " src2=" << instr.src2v[0];
+            if(std::size(instr.destv) != 0) std::cout << " dest=" << instr.destv[0];
         }
         std::cout << std::endl;
     };

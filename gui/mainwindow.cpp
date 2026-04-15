@@ -117,25 +117,6 @@ void MainWindow::onReset()
     refresh();
 }
 
-// void MainWindow::onSetBreakpoint()
-// {
-//     bool ok;
-//     int address = QInputDialog::getInt(
-//         this,
-//         "Set Breakpoint",
-//         "Enter PC address:",
-//         m_breakpoint,  // default value
-//         0,             // min
-//         8192,          // max
-//         1,             // step
-//         &ok
-//         );
-//     if (ok) {
-//         m_breakpoint = address;
-//         m_breakpointLabel->setText(QString("Breakpoint: PC=%1").arg(m_breakpoint));
-//         std::cout << "Breakpoint set at PC=" << m_breakpoint << std::endl;
-//     }
-// }
 
 void MainWindow::onSetBreakpoint()
 {
@@ -152,61 +133,13 @@ void MainWindow::onSetBreakpoint()
     }
 }
 
-// void MainWindow::onClearBreakpoint()
-// {
-//     m_breakpoint = -1;
-//     m_breakpointLabel->setText("Breakpoint: none");
-// }
-
 void MainWindow::onClearBreakpoint()
 {
     m_breakpoints.clear();
     m_breakpointLabel->setText("Breakpoints: none");
 }
 
-// void MainWindow::runLoop()
-// {
-//     int i = 0;
-//     while (m_machineActive && i < 30) {
-//         single_clock_cycle(m_pipeline);
 
-//         if (m_pipeline->wInstr.opcode == 5) {
-//             m_machineActive = false;
-//             std::cout << "HALT encountered." << std::endl;
-//         }
-//         if (intRegs.r[13] >= 8192) m_machineActive = false;
-
-//         i++;
-//     }
-//     refresh();
-// }
-
-// void MainWindow::runLoop()
-// {
-//     int i = 0;
-//     while (m_machineActive && i < 30) {
-//         single_clock_cycle(m_pipeline);
-
-//         if (m_pipeline->wInstr.opcode == 5) {
-//             m_machineActive = false;
-//             std::cout << "HALT encountered." << std::endl;
-//         }
-//         if (intRegs.r[13] >= 8192) m_machineActive = false;
-
-//         // Check breakpoint
-//         // if (m_breakpoint != -1 && intRegs.r[13] == m_breakpoint) {
-//         //     std::cout << "Breakpoint hit at PC=" << m_breakpoint << std::endl;
-//         //     break;
-//         // }
-//         if (m_breakpoints.contains(intRegs.r[13])) {
-//             std::cout << "Breakpoint hit at PC=" << intRegs.r[13] << std::endl;
-//             break;
-//         }
-
-//         i++;
-//     }
-//     refresh();
-// }
 void MainWindow::runLoop()
 {
     int i = 0;
