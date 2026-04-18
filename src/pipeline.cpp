@@ -24,10 +24,10 @@ Registers::VectorRegs vectorRegs;
 Registers::PendVectorRegs pendVectorRegs;
 
 
-bool Pipeline::fetch(){
+bool Pipeline::fetch(bool cacheEnabled){
     int current_pc = intRegs.r[13];
 
-    std::string readValue = this->newCache->readMemory(current_pc, 1, false);
+    std::string readValue = this->newCache->readMemory(current_pc, 1, false, cacheEnabled);
     if (readValue.rfind("Done:", 0) == 0) {  // starts with "Done:"
         this->fInstr.address = current_pc;
         this->fInstr.bin_instr = static_cast<int>(stoul(readValue.substr(6)));
@@ -378,7 +378,7 @@ void Pipeline::execute(){
     }
 }
 
-bool Pipeline::memory_access(){
+bool Pipeline::memory_access(bool cacheEnabled){
     if(this->mInstr.is_squashed || this->mInstr.is_stalled || this->mInstr.bin_instr == -1 || this->mInstr.bin_instr == -2){
         return false;
     }
@@ -394,7 +394,7 @@ bool Pipeline::memory_access(){
             switch(this->mInstr.opcode){
                 case 1:{ // LD
                     // result holds the address, go fetch the value
-                    std::string readValue = this->newCache->readMemory(this->mInstr.result[0], 4, false);
+                    std::string readValue = this->newCache->readMemory(this->mInstr.result[0], 4, false, cacheEnabled);
                     if (readValue.rfind("Done:", 0) == 0) { // starts with "Done:"
                         this->mInstr.result[0] =static_cast<int>(stoul(readValue.substr(6)));
                         return false;
@@ -408,7 +408,7 @@ bool Pipeline::memory_access(){
                 }
                 case 6:{ // LDB
                     // result holds the address, go fetch the value
-                    std::string readValue = this->newCache->readMemory(this->mInstr.result[0], 4, false);
+                    std::string readValue = this->newCache->readMemory(this->mInstr.result[0], 4, false, cacheEnabled);
                     if (readValue.rfind("Done:", 0) == 0) { // starts with "Done:"
                         this->mInstr.result[0] =static_cast<int>(stoul(readValue.substr(6)));
                         return false;
@@ -421,7 +421,7 @@ bool Pipeline::memory_access(){
                     break;
                 }
                 case 2:{ // STR
-                    std::string status = this->newCache->writeMemory(this->mInstr.destv[0], this->mInstr.src1v, 4, false);
+                    std::string status = this->newCache->writeMemory(this->mInstr.destv[0], this->mInstr.src1v, 4, false, cacheEnabled);
                     if (status.rfind("Done", 0) == 0) { // starts with "Done"
                         return false;
                     }
@@ -432,7 +432,7 @@ bool Pipeline::memory_access(){
                     break;
                 }
                 case 7: { // STRB
-                    std::string status = this->newCache->writeMemory(this->mInstr.result[0], this->mInstr.src1v, 4, false);
+                    std::string status = this->newCache->writeMemory(this->mInstr.result[0], this->mInstr.src1v, 4, false, cacheEnabled);
                     if (status.rfind("Done", 0) == 0) { // starts with "Done"
                         return false;
                     }
@@ -450,7 +450,7 @@ bool Pipeline::memory_access(){
                     break;
                 // Enforced 4-word alignment for vector loads and stores!
                 case 4:{ // VSTR
-                    std::string status = this->newCache->writeMemory((this->mInstr.destv[0])%4, this->mInstr.src1v, 4, true);
+                    std::string status = this->newCache->writeMemory((this->mInstr.destv[0])%4, this->mInstr.src1v, 4, true, cacheEnabled);
                     if (status.rfind("Done", 0) == 0) { // starts with "Done"
                         return false;
                     }
@@ -462,7 +462,7 @@ bool Pipeline::memory_access(){
                 }
                 case 3:{ // VLD
                     // result holds the address, go fetch the value
-                    std::string readValue = this->newCache->readMemory((this->mInstr.result[0])%4, 4, true);
+                    std::string readValue = this->newCache->readMemory((this->mInstr.result[0])%4, 4, true, cacheEnabled);
 
                     if (readValue.rfind("Done:", 0) == 0) {
 

@@ -29,6 +29,7 @@ private slots:
     void onReset();
     void onSetBreakpoint();
     void onClearBreakpoint();
+    void onToggleCache();
 
 private:
     Ui::MainWindow *ui;
@@ -40,6 +41,8 @@ private:
     /*int m_breakpoint = -1;*/ // -1 means no breakpoint
     QSet<int> m_breakpoints;
     QLabel* m_breakpointLabel = nullptr;
+    QLabel* m_clockLabel = nullptr;
+     bool cacheEnabled = true;
 
     void initSimulator();
     void runLoop();
@@ -49,6 +52,7 @@ private:
     void refreshCache();
     void refreshPipeline();
     void showEvent(QShowEvent* event) override;
+
 };
 
 #endif // MAINWINDOW_H

@@ -6,7 +6,7 @@
 extern Registers::IntegerRegs intRegs;
 int curClockCycle = 0;
 
-void single_clock_cycle(Pipeline* pipeline) {
+void single_clock_cycle(Pipeline* pipeline, bool cacheEnabled) {
     // Fetch --> Decode --> Execute --> Memory Access --> Write Back
     //extern Registers::IntegerRegs intRegs;
     if (pipeline -> global_clock == 0) { // Initialize first PC to 0
@@ -34,13 +34,14 @@ void single_clock_cycle(Pipeline* pipeline) {
         pipeline->squashed = false;
 
     }
+
     // Execute logic for each stage (Internal state changes only)
     std::cout << "Clock = " << curClockCycle << ", PC = " << intRegs.r[13] << std::endl;
     pipeline->write_back();
-    bool is_mwaiting = pipeline->memory_access();
+    bool is_mwaiting = pipeline->memory_access(cacheEnabled);
     pipeline->execute();
     bool is_dwaiting = pipeline->decode();
-    bool is_fwaiting = pipeline->fetch();
+    bool is_fwaiting = pipeline->fetch(cacheEnabled);
     std::cout << "Done with pipeline stages..." << std::endl;
 
 
@@ -161,7 +162,7 @@ void single_clock_cycle(Pipeline* pipeline) {
         if (!pipeline->dInstr.is_blocked) {
             pipeline->dInstr = pipeline-> fInstr;
             // Only increment PC if we forwarded a real instruction
-            if(pipeline->fInstr.bin_instr != -1){
+            if(pipeline->fInstr.bin_instr != -1 && !pipeline->fInstr.is_squashed){
                 intRegs.r[13]++;
             }
             // fInstr will be updated in the next fetch if successful 
@@ -169,6 +170,8 @@ void single_clock_cycle(Pipeline* pipeline) {
 
     }
 }
+
+
 
 
 

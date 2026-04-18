@@ -44,10 +44,10 @@ public:
 
     Pipeline(Cache* externalCache);
 
-    bool fetch();
+    bool fetch(bool cacheEnabled);
     bool decode();
     void execute();
-    bool memory_access();
+    bool memory_access(bool cacheEnabled);
     void write_back();
     void print_state();
 

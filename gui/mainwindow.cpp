@@ -24,9 +24,15 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->actionReset, &QAction::triggered, this, &MainWindow::onReset);
     connect(ui->actionsetBreakpoint, &QAction::triggered, this, &MainWindow::onSetBreakpoint);
     connect(ui->actionclearBreakpoint, &QAction::triggered, this, &MainWindow::onClearBreakpoint);
+    connect(ui->actionToggleCache, &QAction::triggered, this, &MainWindow::onToggleCache);
+    ui->actionToggleCache->setEnabled(true);
 
     m_breakpointLabel = new QLabel("Breakpoint: none");
     ui->toolBar->addWidget(m_breakpointLabel);
+
+    m_clockLabel = new QLabel("Clock: 0");
+    ui->toolBar->addSeparator();
+    ui->toolBar->addWidget(m_clockLabel);
 
     initSimulator();
 
@@ -63,6 +69,8 @@ void MainWindow::initSimulator()
 
     m_memory = new Memory();
     m_cache  = new Cache(m_memory);
+    m_cache->cacheEnabled = cacheEnabled;
+
     m_machineActive = true;
 
 
@@ -92,15 +100,17 @@ void MainWindow::initSimulator()
 
 void MainWindow::onRun()
 {
+    ui->actionToggleCache->setEnabled(false);
     if (!m_pipeline || !m_machineActive) return;
     runLoop();
 }
 
 void MainWindow::onStep()
 {
+    ui->actionToggleCache->setEnabled(false);
     if (!m_pipeline || !m_machineActive) return;
 
-    single_clock_cycle(m_pipeline);
+    single_clock_cycle(m_pipeline, cacheEnabled);
 
     if (m_pipeline->wInstr.opcode == 5) {
         m_machineActive = false;
@@ -114,6 +124,7 @@ void MainWindow::onStep()
 void MainWindow::onReset()
 {
     initSimulator();
+    ui->actionToggleCache->setEnabled(true);
     refresh();
 }
 
@@ -139,12 +150,20 @@ void MainWindow::onClearBreakpoint()
     m_breakpointLabel->setText("Breakpoints: none");
 }
 
+void MainWindow::onToggleCache()
+{
+    cacheEnabled = !cacheEnabled;
+    m_cache->cacheEnabled = cacheEnabled;
+    ui->actionToggleCache->setText(cacheEnabled ? "Cache: ON" : "Cache: OFF");
+}
+
 
 void MainWindow::runLoop()
 {
+    ui->actionToggleCache->setEnabled(false);
     int i = 0;
-    while (m_machineActive && i < 30) {
-        single_clock_cycle(m_pipeline);
+    while (m_machineActive && i < 10000) {
+        single_clock_cycle(m_pipeline, cacheEnabled);
         i++;
 
         if (m_pipeline->wInstr.opcode == 5) {
@@ -172,6 +191,7 @@ void MainWindow::refresh()
     refreshCache();
     refreshMemory();
     refreshPipeline();
+    m_clockLabel->setText(QString("Clock: %1").arg(m_pipeline->global_clock));
 }
 
 void MainWindow::refreshRegisters()

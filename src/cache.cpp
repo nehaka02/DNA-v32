@@ -9,6 +9,7 @@ Cache::Cache(Memory* memory) {
     this->currentlyServicing=0;
     this->memory=memory;
     this->clock=0;
+    this->cacheEnabled = true;
 
     // initializing cache to 0
 
@@ -28,7 +29,35 @@ void Cache::decodeAddress(int address, int &line, int &index, int &offset, int &
 
 // this method needs to check cache first
 // if address doesn't exist in cache, we need to load from memory and possibly evict a line from cache
- std::string Cache::readMemory(int address, int pipelineStage, bool isVector){
+ std::string Cache::readMemory(int address, int pipelineStage, bool isVector, bool cacheEnabled){
+     if (!cacheEnabled) {
+         int line, index, offset, tag;
+         decodeAddress(address, line, index, offset, tag);
+
+         if (this->currentlyServicing == 0) {
+             this->dramDelay = 3;
+             this->currentlyServicing = pipelineStage;
+             return "Wait";
+         }
+         else if (this->currentlyServicing == pipelineStage && this->dramDelay != 0) {
+             this->dramDelay -= 1;
+             return "Wait";
+         }
+         else {
+             this->currentlyServicing = 0;
+             if (!isVector) {
+                 return "Done: " + std::to_string(this->memory->dram[line][offset]);
+             } else {
+                 std::string result = "Done: ";
+                 for (int i = 0; i < 4; i++) {
+                     result += std::to_string(this->memory->dram[line][i]);
+                     if (i < 3) result += ", ";
+                 }
+                 return result;
+             }
+         }
+     }
+
     // Currently servicing another pipeline stage
     if(this->currentlyServicing != 0 && this->currentlyServicing != pipelineStage) {
         return "Wait: memory is currently servicing another pipeline stage";
@@ -103,7 +132,32 @@ void Cache::decodeAddress(int address, int &line, int &index, int &offset, int &
     }
 }
 
-std::string Cache::writeMemory(int address, const int data[4], int pipelineStage, bool isVector){
+std::string Cache::writeMemory(int address, const int data[4], int pipelineStage, bool isVector, bool cacheEnabled){
+    if (!cacheEnabled) {
+        int line, index, offset, tag;
+        decodeAddress(address, line, index, offset, tag);
+
+        if (this->currentlyServicing == 0) {
+            this->dramDelay = 3;
+            this->currentlyServicing = pipelineStage;
+            return "Wait";
+        }
+        else if (this->currentlyServicing == pipelineStage && this->dramDelay != 0) {
+            this->dramDelay -= 1;
+            return "Wait";
+        }
+        else {
+            this->currentlyServicing = 0;
+            if (!isVector) {
+                this->memory->dram[line][offset] = data[0];
+            } else {
+                for (int i = 0; i < 4; i++) {
+                    this->memory->dram[line][i] = data[i];
+                }
+            }
+            return "Done";
+        }
+    }
     if(this->currentlyServicing != 0 && this->currentlyServicing != pipelineStage){
         return "Wait: memory is currently servicing another pipeline stage";
     }

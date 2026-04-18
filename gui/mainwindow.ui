@@ -30,6 +30,7 @@
    <addaction name="actionReset"/>
    <addaction name="actionsetBreakpoint"/>
    <addaction name="actionclearBreakpoint"/>
+   <addaction name="actionToggleCache"/>
   </widget>
   <widget class="QDockWidget" name="registerDock">
    <property name="windowTitle">
@@ -257,7 +258,7 @@
   </action>
   <action name="actionsetBreakpoint">
    <property name="text">
-    <string>setBreakpoint</string>
+    <string>Set Breakpoint</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>
@@ -265,7 +266,15 @@
   </action>
   <action name="actionclearBreakpoint">
    <property name="text">
-    <string>clearBreakpoint</string>
+    <string>Clear Breakpoint</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionToggleCache">
+   <property name="text">
+    <string>Cache: ON</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>

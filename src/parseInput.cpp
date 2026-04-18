@@ -24,7 +24,7 @@ std::string parseInput(std::vector<std::string> tokens, Cache* newCache) {
 
         int memoryAddress = std::stoi(tokens[1]);
         std::cout << "Writing to memory..." << std::endl;
-        while(newCache->writeMemory(memoryAddress, data, pipelineStage, false) != "Done"){
+        while(newCache->writeMemory(memoryAddress, data, pipelineStage, false, true) != "Done"){
             newCache->clock++;
         }
         //printf("%d was written to %d, current clock cycle = \n", data, memoryAddress);
@@ -44,7 +44,7 @@ std::string parseInput(std::vector<std::string> tokens, Cache* newCache) {
         std::string readValue;
 
         while(true){
-            readValue = newCache->readMemory(memoryAddress, pipelineStage, false);
+            readValue = newCache->readMemory(memoryAddress, pipelineStage, false, true);
             if (readValue.rfind("Done:", 0) == 0) {  // starts with "Done:"
                 break;
             }
