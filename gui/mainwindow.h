@@ -8,6 +8,9 @@
 #include "registers.h"
 #include <QLabel>
 #include <QSet>
+#include <QTextEdit>
+#include <QPushButton>
+#include <QDockWidget>
 
 
 namespace Ui { class MainWindow; }
@@ -30,10 +33,13 @@ private slots:
     void onSetBreakpoint();
     void onClearBreakpoint();
     void onToggleCache();
+    void onLoadAssemblyFile();
+    void onAssemble();
 
 private:
     Ui::MainWindow *ui;
 
+    QDockWidget* m_memCacheDock;
     Memory*   m_memory   = nullptr;
     Cache*    m_cache    = nullptr;
     Pipeline* m_pipeline = nullptr;
@@ -42,7 +48,7 @@ private:
     QSet<int> m_breakpoints;
     QLabel* m_breakpointLabel = nullptr;
     QLabel* m_clockLabel = nullptr;
-     bool cacheEnabled = true;
+    bool cacheEnabled = true;
 
     void initSimulator();
     void runLoop();

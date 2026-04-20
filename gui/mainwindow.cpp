@@ -10,6 +10,13 @@
 #include <iostream>
 #include <QHeaderView>
 #include <QInputDialog>
+#include <QFileDialog>
+#include <QFile>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QTextEdit>
+#include <QProcess>
+#include <QTemporaryFile>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -18,7 +25,6 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     centralWidget()->hide();
     resize(1200, 800);
-
     connect(ui->actionRun,   &QAction::triggered, this, &MainWindow::onRun);
     connect(ui->actionStep,  &QAction::triggered, this, &MainWindow::onStep);
     connect(ui->actionReset, &QAction::triggered, this, &MainWindow::onReset);
@@ -34,23 +40,47 @@ MainWindow::MainWindow(QWidget *parent)
     ui->toolBar->addSeparator();
     ui->toolBar->addWidget(m_clockLabel);
 
+    connect(ui->loadFileBtn, &QPushButton::clicked,this, &MainWindow::onLoadAssemblyFile);
+    connect(ui->assembleBtn, &QPushButton::clicked,this, &MainWindow::onAssemble);
+
     initSimulator();
+
+    //Memory and Cache tabbed dock
+
+    QTabWidget* memCacheTab = new QTabWidget();
+    QWidget* memoryWidget = ui->memoryDock->widget();
+    QWidget* cacheWidget  = ui->cacheDock->widget();
+    memCacheTab->addTab(memoryWidget, "Memory");
+    memCacheTab->addTab(cacheWidget,  "Cache");
+
+
+    m_memCacheDock = new QDockWidget("Memory / Cache", this);
+    m_memCacheDock->setWidget(memCacheTab);
+    m_memCacheDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
+
+    removeDockWidget(ui->memoryDock);
+    removeDockWidget(ui->cacheDock);
+    ui->memoryDock->deleteLater();
+    ui->cacheDock->deleteLater();
 
     // Four quadrant layout
     addDockWidget(Qt::TopDockWidgetArea,    ui->pipelineDock);
     addDockWidget(Qt::TopDockWidgetArea,    ui->registerDock);
-    addDockWidget(Qt::BottomDockWidgetArea, ui->memoryDock);
-    addDockWidget(Qt::BottomDockWidgetArea, ui->cacheDock);
+    addDockWidget(Qt::BottomDockWidgetArea, m_memCacheDock);
+    //addDockWidget(Qt::BottomDockWidgetArea, ui->cacheDock);
+    addDockWidget(Qt::BottomDockWidgetArea, ui->assemblerDock);
 
     // Split top and bottom into left/right
     splitDockWidget(ui->pipelineDock, ui->registerDock, Qt::Horizontal);
-    splitDockWidget(ui->memoryDock,   ui->cacheDock,    Qt::Horizontal);
+    //splitDockWidget(ui->memoryDock,   ui->cacheDock,    Qt::Horizontal);
+    splitDockWidget(m_memCacheDock, ui->assemblerDock,  Qt::Horizontal);
 
     // Lock docks in place
     ui->pipelineDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
     ui->registerDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
-    ui->memoryDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
-    ui->cacheDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
+    // ui->memoryDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
+    // ui->cacheDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
+    ui->assemblerDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
 }
 
 MainWindow::~MainWindow()
@@ -290,13 +320,140 @@ void MainWindow::showEvent(QShowEvent* event)
         Qt::Horizontal
         );
     resizeDocks(
-        {ui->memoryDock, ui->cacheDock},
+        {m_memCacheDock, ui->assemblerDock},
         {halfWidth, halfWidth},
         Qt::Horizontal
         );
     resizeDocks(
-        {ui->pipelineDock, ui->memoryDock},
+        {ui->pipelineDock, m_memCacheDock},
         {halfHeight, halfHeight},
         Qt::Vertical
         );
+    // resizeDocks(
+    //     {ui->memoryDock, ui->cacheDock},
+    //     {halfWidth, halfWidth},
+    //     Qt::Horizontal
+    //     );
+    // resizeDocks(
+    //     {ui->pipelineDock, ui->memoryDock},
+    //     {halfHeight, halfHeight},
+    //     Qt::Vertical
+    //     );
+}
+
+void MainWindow::onLoadAssemblyFile()
+{
+    QString fileName = QFileDialog::getOpenFileName(
+        this,
+        "Open Assembly File",
+        "",
+        "Assembly Files (*.s *.asm *.txt);;All Files (*)"
+        );
+
+    if (fileName.isEmpty()) return;
+
+    QFile file(fileName);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        ui->assembleStatus->setText("Failed to open file.");
+        return;
+    }
+
+    QTextStream in(&file);
+    QString content = in.readAll();
+    file.close();
+
+    ui->assemblyInput->setPlainText(content);
+    ui->assembleStatus->setText("Loaded: " + fileName);
+}
+
+void MainWindow::onAssemble()
+{
+    initSimulator();
+    QString text = ui->assemblyInput->toPlainText();
+
+    // Write file to temporary file to provide to python assembler
+    QString assemblerPath = QDir::currentPath() + "/assembler/assembler.py";
+    QString inputFile  = QDir::currentPath() + "/temp.s";
+    QString outputFile = QDir::currentPath() + "/output.txt";
+    //QString inputFile = "temp.s";
+    QFile file(inputFile);
+
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        ui->assembleStatus->setText("Failed to write temp file.");
+        return;
+    }
+
+    QTextStream out(&file);
+    out << text;
+    file.close();
+
+    // Call python assembler
+
+    QProcess process;
+    process.start("python3", QStringList() << assemblerPath << inputFile << outputFile);
+    process.waitForFinished();
+
+    // QProcess process;
+    // process.start("python", QStringList() << "/assembler/assembler.py" << inputFile << outputFile);
+    // process.waitForFinished();
+
+    QString stdErr = process.readAllStandardError();
+    QString stdOut = process.readAllStandardOutput();
+    qDebug() << "STDOUT:" << stdOut;
+    qDebug() << "STDERR:" << stdErr;
+
+    if (!stdErr.isEmpty()) {
+        ui->assembleStatus->setText("Assembler error: " + stdErr);
+        return;
+    }
+
+    if (process.exitStatus() != QProcess::NormalExit) {
+        ui->assembleStatus->setText("Assembler failed.");
+        return;
+    }
+
+    // Parse output file from python assembler
+    // Output file is in the form W [address] [machine code] [pipeline stage = 4], basically what we have in the demo code
+
+    // Double check that the file was created correctly
+    if (!QFile::exists(outputFile)) {
+        ui->assembleStatus->setText("Output file was NOT created.");
+        return;
+    }
+
+    // Attempt to open and read the file
+    QFile outFile(outputFile);
+    if (!outFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        ui->assembleStatus->setText("Failed to read output file.");
+        return;
+    }
+
+    QTextStream in(&outFile);
+
+    initSimulator();
+
+    while (!in.atEnd()) {
+        QString line = in.readLine().trimmed();
+
+        if (line.isEmpty())
+            continue;
+
+        QStringList parts = line.split(' ', Qt::SkipEmptyParts);
+
+        std::vector<std::string> tokens;
+        tokens.reserve(parts.size());
+
+        for (const QString& p : parts) {
+            tokens.push_back(p.toStdString());
+        }
+
+        // Load all lines to memory in order 0, 1, 2, ...
+        parseInput(tokens, m_cache);
+    }
+
+    outFile.close();
+
+    ui->assembleStatus->setText("Assembled and loaded successfully.");
+    refresh();
+
 }

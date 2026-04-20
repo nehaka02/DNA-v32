@@ -1,6 +1,6 @@
 # This Python file uses the following encoding: utf-8
 import sys
-from assembler.mnemonic_table import mnemonic_table
+from mnemonic_table import mnemonic_table
 
 
 class Assembler:
@@ -41,56 +41,55 @@ class Assembler:
                 instr_struct = mnemonic_table[operation][2]
 
                 binary = 0
-                match instr_struct:
-                    case "scalar":
-                        # dest(reg) src1(reg) src2(reg)
-                        dest, src1, src2 = tokens[1], tokens[2], tokens[3]
-                        binary = self.__encode_scalar(type_code, opcode, dest, src1, src2)
+                if instr_struct == "scalar":
+                    # dest(reg) src1(reg) src2(reg)
+                    dest, src1, src2 = tokens[1], tokens[2], tokens[3]
+                    binary = self.__encode_scalar(type_code, opcode, dest, src1, src2)
 
-                    case "immediate":
-                        # dest(reg) src1(reg) immediate
-                        dest, src1, immediate = tokens[1], tokens[2], tokens[3]
-                        binary = self.__encode_immediate(type_code, opcode, dest, src1, immediate)
+                elif instr_struct == "immediate":
+                    # dest(reg) src1(reg) immediate
+                    dest, src1, immediate = tokens[1], tokens[2], tokens[3]
+                    binary = self.__encode_immediate(type_code, opcode, dest, src1, immediate)
 
-                    case "vector":
-                        # length(immediate) dest(reg) src1(reg) src2(reg)
-                        length, dest, src1, src2 = tokens[1], tokens[2], tokens[3], tokens[4]
-                        binary = self.__encode_vector(type_code, opcode, length, dest, src1, src2)
+                elif instr_struct == "vector":
+                    # length(immediate) dest(reg) src1(reg) src2(reg)
+                    length, dest, src1, src2 = tokens[1], tokens[2], tokens[3], tokens[4]
+                    binary = self.__encode_vector(type_code, opcode, length, dest, src1, src2)
 
-                    case "vector_misc":
-                        length, reg1, reg2 = tokens[1], tokens[2], tokens[3]
-                        binary = self.__encode_vector_misc(type_code, opcode, length, reg1, reg2)
+                elif instr_struct == "vector_misc":
+                    length, reg1, reg2 = tokens[1], tokens[2], tokens[3]
+                    binary = self.__encode_vector_misc(type_code, opcode, length, reg1, reg2)
 
-                    case "cmp":
-                        src1, src2 = tokens[1], tokens[2]
-                        binary = self.__encode_cmp(type_code, opcode, src1, src2)
+                elif instr_struct == "cmp":
+                    src1, src2 = tokens[1], tokens[2]
+                    binary = self.__encode_cmp(type_code, opcode, src1, src2)
 
-                    case "cmpi":
-                        src1, immediate = tokens[1], tokens[2]
-                        binary = self.__encode_cmpi(type_code, opcode, src1, immediate)
+                elif instr_struct == "cmpi":
+                    src1, immediate = tokens[1], tokens[2]
+                    binary = self.__encode_cmpi(type_code, opcode, src1, immediate)
 
-                    case "branch":
-                        offset = tokens[1]
-                        binary = self.__encode_branch(type_code, opcode, offset, location)
+                elif instr_struct == "branch":
+                    offset = tokens[1]
+                    binary = self.__encode_branch(type_code, opcode, offset, location)
 
-                    case "bx":
-                        src = tokens[1]
-                        binary = self.__encode_bx(type_code, opcode, src)
+                elif instr_struct == "bx":
+                    src = tokens[1]
+                    binary = self.__encode_bx(type_code, opcode, src)
 
-                    case "misc":
-                        dest, src = tokens[1], tokens[2]
-                        binary = self.__encode_misc(type_code, opcode, dest, src)
+                elif instr_struct == "misc":
+                    dest, src = tokens[1], tokens[2]
+                    binary = self.__encode_misc(type_code, opcode, dest, src)
 
-                    case "halt":
-                        binary = self.__encode_halt(type_code, opcode)
+                elif instr_struct == "halt":
+                    binary = self.__encode_halt(type_code, opcode)
 
-                    case "base":
-                        reg1, reg2, offset = tokens[1], tokens[2], tokens[3]
-                        binary = self.__encode_base(type_code, opcode, reg1, reg2, offset)
+                elif instr_struct == "base":
+                    reg1, reg2, offset = tokens[1], tokens[2], tokens[3]
+                    binary = self.__encode_base(type_code, opcode, reg1, reg2, offset)
 
-                    case "ldi":
-                        dest, immediate = tokens[1], tokens[2]
-                        binary = self.__encode_ldi(type_code, opcode, dest, immediate)
+                elif instr_struct == "ldi":
+                    dest, immediate = tokens[1], tokens[2]
+                    binary = self.__encode_ldi(type_code, opcode, dest, immediate)
 
                 self.machine_code.append(binary)
                 location += 1
@@ -109,10 +108,16 @@ class Assembler:
         self.second_pass(lines)
 
         # Write binary output to output file
-        with open(output_file, "w") as f:
-            for instr in self.machine_code:
-                f.write(f"{instr}\n")
+        # with open(output_file, "w") as f:
+        #     for instr in self.machine_code:
+        #         f.write(f"{instr}\n")
 
+        with open(output_file, "w") as f:
+            address = 0
+            for instr in self.machine_code:
+                # match your parseInput format: W addr value size
+                f.write(f"W {address} {instr} 4\n")
+                address += 1
 
     # helper methods
     def __reg_to_num(self, reg):
@@ -207,6 +212,4 @@ if __name__ == "__main__":
 
     assembler = Assembler()
     assembler.assemble(input_file, output_file)
-
-    # load output file to memory via parseInput.cpp
 

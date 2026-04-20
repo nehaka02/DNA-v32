@@ -16,24 +16,24 @@ void single_clock_cycle(Pipeline* pipeline, bool cacheEnabled) {
     curClockCycle = pipeline -> global_clock;
     (pipeline->global_clock)++;
 
-    // Handle squash after write_back
-    if(pipeline->squashed){
-        //pipeline->fInstr.is_squashed=true;
-        pipeline->dInstr.is_squashed=true;
-        pipeline->dInstr.is_blocked=false;
+    // // Handle squash after write_back
+    // if(pipeline->squashed){
+    //     //pipeline->fInstr.is_squashed=true;
+    //     pipeline->dInstr.is_squashed=true;
+    //     pipeline->dInstr.is_blocked=false;
 
-        pipeline->eInstr.is_squashed=true;
-        pipeline->eInstr.is_blocked=false;
+    //     pipeline->eInstr.is_squashed=true;
+    //     pipeline->eInstr.is_blocked=false;
 
-        pipeline->mInstr.is_squashed=true;
-        pipeline->mInstr.is_blocked=false;
+    //     pipeline->mInstr.is_squashed=true;
+    //     pipeline->mInstr.is_blocked=false;
 
-        pipeline->wInstr.is_squashed=true;
-        pipeline->wInstr.is_blocked=false;
+    //     pipeline->wInstr.is_squashed=true;
+    //     pipeline->wInstr.is_blocked=false;
 
-        pipeline->squashed = false;
+    //     pipeline->squashed = false;
 
-    }
+    // }
 
     // Execute logic for each stage (Internal state changes only)
     std::cout << "Clock = " << curClockCycle << ", PC = " << intRegs.r[13] << std::endl;
@@ -92,6 +92,25 @@ void single_clock_cycle(Pipeline* pipeline, bool cacheEnabled) {
     std::cout << "\n" << std::endl;
 
     /************************DEBUG PRINTS***************************/
+
+    // After current cycle execution, set squash tags for next cycle
+    if(pipeline->squashed){
+        //pipeline->fInstr.is_squashed=true;
+        pipeline->dInstr.is_squashed=true;
+        pipeline->dInstr.is_blocked=false;
+
+        pipeline->eInstr.is_squashed=true;
+        pipeline->eInstr.is_blocked=false;
+
+        pipeline->mInstr.is_squashed=true;
+        pipeline->mInstr.is_blocked=false;
+
+        pipeline->wInstr.is_squashed=true;
+        pipeline->wInstr.is_blocked=false;
+
+        pipeline->squashed = false;
+
+    }
 
     // Set status and instruction struct for the next clock cycle
 
