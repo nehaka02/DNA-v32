@@ -9,14 +9,14 @@ STRB R0 R10 2
 STRB R0 R11 3
 XORI R2 R1 0
 outer_loop:
-CMP R2 1
+CMPI R2 1
 BLE done
 LDI R3 0
 SUBI R4 R2 1
 inner_loop:
 CMP R3 R4
 BGE next_pass
-ADDI R6 R0 R3
+ADD R6 R0 R3
 LD R7 R6
 LDB R5 R6 1
 CMP R7 R5
@@ -30,6 +30,9 @@ next_pass:
 SUBI R2 R2 1
 B outer_loop
 done:
+HALT
+HALT
+HALT
 HALT
 
 
