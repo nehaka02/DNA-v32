@@ -38,13 +38,17 @@ public:
     InstructionObject eInstr;
     InstructionObject mInstr;
     InstructionObject wInstr;
+
+    // To preserve state before fowarding for correct rendering in UI
+    InstructionObject displayF{}, displayD{}, displayE{}, displayM{}, displayW{};
+
     Cache *newCache;
     int global_clock;
     bool squashed = false; 
 
     Pipeline(Cache* externalCache);
 
-    bool fetch(bool cacheEnabled);
+    bool fetch(bool cacheEnabled, int pc_to_fetch);
     bool decode();
     void execute();
     bool memory_access(bool cacheEnabled);

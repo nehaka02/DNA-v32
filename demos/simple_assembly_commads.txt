@@ -31,4 +31,122 @@ HALT
 HALT
 HALT
 HALT
-HALT 
+HALT
+
+
+
+
+
+
+
+more random stuff copying output for debugging purposes
+
+Clock = 16, PC = 8
+FETCH RUNNING: pc=8
+Cache miss. Starting new access cycle... Wait
+FETCH MISS
+Done with pipeline stages...
+
+--- AFTER STAGE EXECUTION ---
+F: [BLOCKED]
+D: bin=-1602224122 type=2 opcode=8 imm=6 result=0x1115249cc src1=0 src2=0 dest=2
+E: bin=-1606418427 type=2 opcode=8 imm=5 result=0x111524a2c src1=0 src2=0 dest=1
+M: bin=1073741827 type=1 opcode=0 imm=-1 result=0x111524a8c src1=0 src2=0 dest=0
+W: bin=147456 type=0 opcode=0 imm=-1 result=0x111524aec src1=1 src2=2 dest=0
+is_fwaiting=1 is_dwaiting=0 is_mwaiting=0
+
+
+POST-FORWARD SQUASH FLAGS: F=0 D=0 E=0 M=0 W=0
+
+
+
+Clock = 17, PC = 8
+DEBUG BRANCH: addr=5 new_pc=8 current_pc=8 addr+1=6 squash=1
+DEBUG: squash set!
+FETCH RUNNING: pc=8
+Cache miss, loading from memory... Wait
+FETCH MISS
+Done with pipeline stages...
+
+--- AFTER STAGE EXECUTION ---
+F: [BLOCKED]
+D: [BUBBLE]
+E: bin=-1602224122 type=2 opcode=8 imm=6 result=0x111524a2c src1=0 src2=0 dest=2
+M: bin=-1606418427 type=2 opcode=8 imm=5 result=0x111524a8c src1=0 src2=0 dest=1
+W: bin=1073741827 type=1 opcode=0 imm=-1 result=0x111524aec src1=0 src2=0 dest=0
+is_fwaiting=1 is_dwaiting=0 is_mwaiting=0
+
+
+POST-FORWARD SQUASH FLAGS: F=1 D=1 E=1 M=1 W=1
+
+
+Clock = 18, PC = 8
+FETCH RUNNING: pc=8
+Cache miss, loading from memory... Wait
+FETCH MISS
+Done with pipeline stages...
+
+--- AFTER STAGE EXECUTION ---
+F: [BLOCKED]
+D: [SQUASHED]bin=-1 type=-1 opcode=-1 imm=-1 result=0x1115249cc src1=0 src2=0 dest=0
+E: [SQUASHED][BUBBLE]
+M: [SQUASHED]bin=-1602224122 type=2 opcode=8 imm=6 result=0x111524a8c src1=0 src2=0 dest=2
+W: [SQUASHED]bin=-1606418427 type=2 opcode=8 imm=5 result=0x111524aec src1=0 src2=0 dest=1
+is_fwaiting=1 is_dwaiting=0 is_mwaiting=0
+
+
+POST-FORWARD SQUASH FLAGS: F=0 D=1 E=1 M=1 W=1
+
+Clock = 19, PC = 8
+FETCH RUNNING: pc=8
+Cache miss, loading from memory... Wait
+FETCH MISS
+Done with pipeline stages...
+
+--- AFTER STAGE EXECUTION ---
+F: [BLOCKED]
+D: [SQUASHED][BUBBLE]
+E: [SQUASHED]bin=-1 type=-1 opcode=-1 imm=-1 result=0x111524a2c src1=0 src2=0 dest=0
+M: [SQUASHED][BUBBLE]
+W: [SQUASHED]bin=-1602224122 type=2 opcode=8 imm=6 result=0x111524aec src1=0 src2=0 dest=2
+is_fwaiting=1 is_dwaiting=0 is_mwaiting=0
+
+
+POST-FORWARD SQUASH FLAGS: F=0 D=1 E=1 M=1 W=1
+
+
+
+
+lock = 20, PC = 8
+FETCH RUNNING: pc=8
+FETCH SUCCESS: clearing is_squashed
+Done with pipeline stages...
+
+--- AFTER STAGE EXECUTION ---
+F: bin=-1598029817 type=-1 opcode=-1 imm=-1 result=0x11152496c src1=0 src2=0 dest=0
+D: [SQUASHED][BUBBLE]
+E: [SQUASHED][BUBBLE]
+M: [SQUASHED]bin=-1 type=-1 opcode=-1 imm=-1 result=0x111524a8c src1=0 src2=0 dest=0
+W: [SQUASHED][BUBBLE]
+is_fwaiting=0 is_dwaiting=0 is_mwaiting=0
+
+
+POST-FORWARD SQUASH FLAGS: F=0 D=0 E=1 M=1 W=1
+
+
+Clock = 21, PC = 9
+FETCH RUNNING: pc=9
+Cache Hit!
+FETCH SUCCESS: clearing is_squashed
+Done with pipeline stages...
+
+--- AFTER STAGE EXECUTION ---
+F: bin=147456 type=-1 opcode=-1 imm=-1 result=0x11152496c src1=0 src2=0 dest=0
+D: bin=-1598029817 type=2 opcode=8 imm=7 result=0x1115249cc src1=0 src2=0 dest=3
+E: [SQUASHED][BUBBLE]
+M: [SQUASHED][BUBBLE]
+W: [SQUASHED]bin=-1 type=-1 opcode=-1 imm=-1 result=0x111524aec src1=0 src2=0 dest=0
+is_fwaiting=0 is_dwaiting=0 is_mwaiting=0
+
+
+POST-FORWARD SQUASH FLAGS: F=0 D=0 E=0 M=1 W=1

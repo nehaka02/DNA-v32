@@ -4,6 +4,9 @@
 #include <iostream>
 
 extern Registers::IntegerRegs intRegs;
+extern Registers::PendIntegerRegs pendRegs;
+extern Registers::PendVectorRegs pendVectorRegs;
+
 int curClockCycle = 0;
 
 void single_clock_cycle(Pipeline* pipeline, bool cacheEnabled) {
@@ -35,15 +38,23 @@ void single_clock_cycle(Pipeline* pipeline, bool cacheEnabled) {
 
     // }
 
+    int pc_to_fetch = intRegs.r[13];// This is specifically used by fetch
+
     // Execute logic for each stage (Internal state changes only)
     std::cout << "Clock = " << curClockCycle << ", PC = " << intRegs.r[13] << std::endl;
     pipeline->write_back();
     bool is_mwaiting = pipeline->memory_access(cacheEnabled);
     pipeline->execute();
     bool is_dwaiting = pipeline->decode();
-    bool is_fwaiting = pipeline->fetch(cacheEnabled);
+    bool is_fwaiting = pipeline->fetch(cacheEnabled, pc_to_fetch);
     std::cout << "Done with pipeline stages..." << std::endl;
 
+    // Snapshot pipeline state here, match UI to debug print out
+    pipeline->displayF = pipeline->fInstr;
+    pipeline->displayD = pipeline->dInstr;
+    pipeline->displayE = pipeline->eInstr;
+    pipeline->displayM = pipeline->mInstr;
+    pipeline->displayW = pipeline->wInstr;
 
     /************************DEBUG PRINTS***************************/
     // Print state of all instruction structs after stage execution
@@ -93,9 +104,41 @@ void single_clock_cycle(Pipeline* pipeline, bool cacheEnabled) {
 
     /************************DEBUG PRINTS***************************/
 
+
     // After current cycle execution, set squash tags for next cycle
     if(pipeline->squashed){
-        //pipeline->fInstr.is_squashed=true;
+
+        // Undo pending reg increments for squashed instructions still in D/E/M
+        auto undoPending = [](InstructionObject& instr){
+            if(instr.bin_instr == -1 || instr.is_stalled || instr.is_squashed) return;
+
+            if(instr.type_code == 0){
+                int op = instr.opcode;
+                if((op >= 0 && op <= 11) || (op >= 15 && op <= 26)){
+                    pendRegs.r[instr.destv[0]]--;
+                }
+                if(op == 27) pendRegs.r[14]--;  // CMP
+            }
+            if(instr.type_code == 1){
+                pendRegs.r[13]--;  // PC
+                if(instr.opcode == 7) pendRegs.r[12]--;  // BL also sets LR
+            }
+            if(instr.type_code == 2){
+                int op = instr.opcode;
+                if(op == 0 || op == 1 || op == 6 || op == 8){  // NOT, LD, LDB, LDI
+                    pendRegs.r[instr.destv[0]]--;
+                }
+                if(op == 3) pendVectorRegs.q[instr.destv[0]]--;  // VLD
+            }
+        };
+
+        undoPending(pipeline->dInstr);
+        undoPending(pipeline->eInstr);
+        undoPending(pipeline->mInstr);
+
+
+        pipeline->fInstr.is_squashed=true;
+
         pipeline->dInstr.is_squashed=true;
         pipeline->dInstr.is_blocked=false;
 
@@ -105,18 +148,20 @@ void single_clock_cycle(Pipeline* pipeline, bool cacheEnabled) {
         pipeline->mInstr.is_squashed=true;
         pipeline->mInstr.is_blocked=false;
 
-        pipeline->wInstr.is_squashed=true;
-        pipeline->wInstr.is_blocked=false;
+        // pipeline->wInstr.is_squashed=true;
+        // pipeline->wInstr.is_blocked=false;
 
         pipeline->squashed = false;
 
     }
 
+
+
     // Set status and instruction struct for the next clock cycle
 
     // Assign blocks and stalls: blocks propagate backwards, stalls go forward
     // Forward instruction struct when possible
-    
+
     // Handles stage M
     if (is_mwaiting) {
         pipeline->mInstr.is_blocked = true;
@@ -154,10 +199,10 @@ void single_clock_cycle(Pipeline* pipeline, bool cacheEnabled) {
         }
     }
 
-    // Handles stage D 
+    // Handles stage D
     if(is_dwaiting) {
         pipeline->dInstr.is_blocked = true;
-        pipeline->fInstr.is_blocked = true; 
+        pipeline->fInstr.is_blocked = true;
         if (!pipeline->eInstr.is_blocked) {//Forward stall if E unblocked
             pipeline->eInstr.is_stalled = true;
         }
@@ -165,14 +210,15 @@ void single_clock_cycle(Pipeline* pipeline, bool cacheEnabled) {
     else { // if D is not blocked, then E is not blocked, forward instruction struct
         pipeline->fInstr.is_blocked = false; // Unblock F (F can block itself again if waiting)
         pipeline->dInstr.is_blocked = false;
-        pipeline->eInstr = pipeline->dInstr; 
+        pipeline->eInstr = pipeline->dInstr;
     }
 
-    // Handles stage F 
-    if(is_fwaiting) {
+    // Handles stage F
+    if(is_fwaiting && !pipeline->fInstr.is_squashed) {
         pipeline->fInstr.is_blocked = true;
         // Check for blocking not waiting, D might not be waiting for anything but blocked by another stage
         if (!pipeline->dInstr.is_blocked) {
+            pipeline->dInstr = InstructionObject{};
             pipeline->dInstr.is_stalled = true;
         }
     }
@@ -184,11 +230,22 @@ void single_clock_cycle(Pipeline* pipeline, bool cacheEnabled) {
             if(pipeline->fInstr.bin_instr != -1 && !pipeline->fInstr.is_squashed){
                 intRegs.r[13]++;
             }
-            // fInstr will be updated in the next fetch if successful 
+            // fInstr will be updated in the next fetch if successful
         }
 
     }
+
+
+    // FIXME
+
+    std::cout << "POST-FORWARD SQUASH FLAGS: F=" << pipeline->fInstr.is_squashed
+              << " D=" << pipeline->dInstr.is_squashed
+              << " E=" << pipeline->eInstr.is_squashed
+              << " M=" << pipeline->mInstr.is_squashed
+              << " W=" << pipeline->wInstr.is_squashed << std::endl;
+
 }
+
 
 
 

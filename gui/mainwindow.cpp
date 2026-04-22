@@ -142,10 +142,21 @@ void MainWindow::onStep()
 
     single_clock_cycle(m_pipeline, cacheEnabled);
 
-    if (m_pipeline->wInstr.opcode == 5) {
+    std::cout << "TERM CHECK: op=" << m_pipeline->displayW.opcode
+              << " type=" << m_pipeline->displayW.type_code
+              << " halt=" << m_pipeline->displayW.halt_signal
+              << " bin=" << m_pipeline->displayW.bin_instr << std::endl;
+
+    if(m_pipeline->displayW.halt_signal) {
         m_machineActive = false;
         std::cout << "HALT encountered." << std::endl;
     }
+
+    // if (m_pipeline->wInstr.type_code == 2 && m_pipeline->wInstr.opcode == 5) {
+    //     m_machineActive = false;
+    //     std::cout << "HALT encountered." << std::endl;
+    // }
+
     if (intRegs.r[13] >= 8192) m_machineActive = false;
 
     refresh();
@@ -196,11 +207,17 @@ void MainWindow::runLoop()
         single_clock_cycle(m_pipeline, cacheEnabled);
         i++;
 
-        if (m_pipeline->wInstr.opcode == 5) {
+        // if (m_pipeline->wInstr.opcode == 5) {
+        //     m_machineActive = false;
+        //     std::cout << "HALT encountered." << std::endl;
+        //     break;
+        // }
+        if (m_pipeline->displayW.halt_signal) {
             m_machineActive = false;
             std::cout << "HALT encountered." << std::endl;
             break;
         }
+
         if (intRegs.r[13] >= 8192) {
             m_machineActive = false;
             break;
@@ -269,12 +286,20 @@ void MainWindow::refreshPipeline()
 {
     ui->pipelineTable->setColumnCount(1);
 
+    // const InstructionObject* stages[5] = {
+    //     &m_pipeline->fInstr,
+    //     &m_pipeline->dInstr,
+    //     &m_pipeline->eInstr,
+    //     &m_pipeline->mInstr,
+    //     &m_pipeline->wInstr
+    // };
+
     const InstructionObject* stages[5] = {
-        &m_pipeline->fInstr,
-        &m_pipeline->dInstr,
-        &m_pipeline->eInstr,
-        &m_pipeline->mInstr,
-        &m_pipeline->wInstr
+        &m_pipeline->displayF,
+        &m_pipeline->displayD,
+        &m_pipeline->displayE,
+        &m_pipeline->displayM,
+        &m_pipeline->displayW
     };
 
     for (int i = 0; i < 5; i++) {

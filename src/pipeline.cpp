@@ -23,16 +23,25 @@ Registers::PendIntegerRegs pendRegs;
 Registers::VectorRegs vectorRegs;
 Registers::PendVectorRegs pendVectorRegs;
 
+// Fetch needs to work on PC before it is changed by write back
+// Write back call happens first and fetch last in driver code, if directly call pc reg, fetch will get
+// the updated value instead which is not what we are looking for
+bool Pipeline::fetch(bool cacheEnabled, int pc_to_fetch){
+    //int current_pc = intRegs.r[13];
 
-bool Pipeline::fetch(bool cacheEnabled){
-    int current_pc = intRegs.r[13];
+    //FIXME
+    std::cout << "FETCH RUNNING: pc=" << pc_to_fetch << std::endl;
 
-    std::string readValue = this->newCache->readMemory(current_pc, 1, false, cacheEnabled);
+    std::string readValue = this->newCache->readMemory(pc_to_fetch, 1, false, cacheEnabled);
     if (readValue.rfind("Done:", 0) == 0) {  // starts with "Done:"
-        this->fInstr.address = current_pc;
+
+        //FIXME
+        std::cout << "FETCH SUCCESS: clearing is_squashed" << std::endl;
+
+        this->fInstr.address = pc_to_fetch;
         this->fInstr.bin_instr = static_cast<int>(stoul(readValue.substr(6)));
         this->fInstr.is_blocked = false;
-
+        this->fInstr.is_squashed = false;
         // FIXME: PC should be updated when f is able to pass on it's instruction block
         // //UPDATE PC HERE
         // if(!this->dInstr.is_blocked){
@@ -42,6 +51,10 @@ bool Pipeline::fetch(bool cacheEnabled){
         return false;
     }
     else{
+
+        //FIXME
+        std::cout << "FETCH MISS" << std::endl;
+
         this->fInstr = InstructionObject{};
         this->fInstr.is_blocked = true;
         this->newCache->clock++;
