@@ -54,6 +54,7 @@ public:
 private :
     int ALU_helper(int opcode, int a, int b);
     int branch_helper(int addr);
+    int helper_unsigned_to_signed(int val, int bits);
 
 };
 

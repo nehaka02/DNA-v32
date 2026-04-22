@@ -99,11 +99,15 @@ bool Pipeline::decode(){
             if(opcode >= 15 && opcode <= 26){
                 int dest = (bin >> 21) & 0b1111;
                 int src1 = (bin >> 17) & 0b1111;
+                int immediate = bin & 0x1FFFF; // 17 ones
                 if (pendRegs.r[dest] != 0 || pendRegs.r[src1] != 0) {
                     return true;
                 }
                 this->dInstr.destv[0] = dest;
                 this->dInstr.src1v[0] = intRegs.r[src1];
+                //this->dInstr.immediate = immediate;
+                this->dInstr.immediate = helper_unsigned_to_signed(immediate, 17);
+
 
                 pendRegs.r[dest]++;
                 return false;
@@ -135,12 +139,13 @@ bool Pipeline::decode(){
             // CMPI
             if(opcode == 30){
                 int src1 = (bin >> 21) & 0b1111;
-                int immediate = (bin & 0x1FFFFF);
+                int immediate = (bin & 0x1FFFFF); // 21 ones
                 if(pendRegs.r[src1] != 0 ) {
                     return true;
                 }
                 this->dInstr.src1v[0] = intRegs.r[src1];
-                this->dInstr.immediate = immediate;
+                //this->dInstr.immediate = immediate;
+                this->dInstr.immediate = helper_unsigned_to_signed(immediate, 21);
                 return false;
             }
 
@@ -154,15 +159,18 @@ bool Pipeline::decode(){
 
             //everything besides BX instruction
             if(opcode >= 0 && opcode <= 7){
-                this->dInstr.branch_offset = bin & 0x3FFFFFF;
+                int offset =  bin & 0x3FFFFFF;
+                this->dInstr.branch_offset = helper_unsigned_to_signed(offset, 26);
+
+                if(opcode == 7) { // LR is pending
+                    pendRegs.r[12]++;
+                }
+
                 return false;
             }
             if(opcode == 8) { // BX
                 int src = (bin >> 22) & 0b1111;
                 this->dInstr.src1v[0] = intRegs.r[src];
-            }
-            if(opcode == 7) { // LR is pending
-                pendRegs.r[12]++;
             }
             pendRegs.r[13]++; // PC register pending
             break;
@@ -243,14 +251,15 @@ bool Pipeline::decode(){
                 int dest = (bin >> 22) & 0b1111;
                 int base = (bin >> 18) & 0b1111; // this will go in src1 field of instruction object (base is a register!)
                 int offset = (bin & 0x3FFFF); // this will go in immediate field of instruction object
-
+                                              // 18 ones
                 if (pendRegs.r[dest] != 0 || pendRegs.r[base] != 0) {
                     return true;
                 }
 
                 this->dInstr.destv[0] = dest;
                 this->dInstr.src1v[0] = intRegs.r[base];
-                this->dInstr.immediate = offset;
+                //this->dInstr.immediate = offset;
+                this->dInstr.immediate = helper_unsigned_to_signed(offset, 18);
 
                 pendRegs.r[dest]++;
                 return false;
@@ -267,8 +276,8 @@ bool Pipeline::decode(){
 
                 this->dInstr.src1v[0] = intRegs.r[src1];
                 this->dInstr.src2v[0] = intRegs.r[base];
-                this->dInstr.immediate = offset;
-
+                //this->dInstr.immediate = offset;
+                this->dInstr.immediate = helper_unsigned_to_signed(offset, 18);
                 return false;
             }
             // LDI
@@ -277,8 +286,8 @@ bool Pipeline::decode(){
                 int immediate = bin & 0x3FFFFF; // 22 bits
 
                 this->dInstr.destv[0] = dest;
-                this->dInstr.immediate = immediate;
-
+                //this->dInstr.immediate = immediate;
+                this->dInstr.immediate = helper_unsigned_to_signed(immediate, 22);
                 pendRegs.r[dest]++;
                 return false;
             }
@@ -728,4 +737,11 @@ void Pipeline::print_state(){
     // Cache
     std::cout << std::endl;
     this->newCache->printCache();
+}
+
+int Pipeline::helper_unsigned_to_signed(int val, int bits){
+    if (val & (1 << (bits - 1))) {
+        val |= ~((1 << bits) - 1);
+    }
+    return val;
 }
