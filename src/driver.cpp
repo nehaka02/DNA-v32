@@ -10,6 +10,13 @@ extern Registers::PendVectorRegs pendVectorRegs;
 int curClockCycle = 0;
 
 void single_clock_cycle(Pipeline* pipeline, bool cacheEnabled) {
+
+    // FIXME
+    std::cout << "PEND: r0=" << pendRegs.r[0]
+              << " r1=" << pendRegs.r[1] << std::endl;
+
+
+
     // Fetch --> Decode --> Execute --> Memory Access --> Write Back
     //extern Registers::IntegerRegs intRegs;
     if (pipeline -> global_clock == 0) { // Initialize first PC to 0

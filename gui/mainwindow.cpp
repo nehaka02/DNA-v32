@@ -107,7 +107,14 @@ void MainWindow::initSimulator()
     // Clear all registers
     for (int i = 0; i < 16; i++) {
         intRegs.r[i] = 0;
+        pendRegs.r[i] = 0;
     }
+
+    // FIXME
+    // Also clear vector pending regs
+    // for (int i = 0; i < 8; i++) {
+    //     pendVectorRegs.q[i] = 0;
+    // }
 
     std::ifstream file("demos/demo_commands2.txt");
     if (!file.is_open()) {
