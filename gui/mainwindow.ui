@@ -111,12 +111,22 @@
        </column>
        <column>
         <property name="text">
-         <string>Hex</string>
+         <string>Offset 1</string>
         </property>
        </column>
        <column>
         <property name="text">
-         <string>Decimal</string>
+         <string>Offset 2</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Offset 3</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Offset 4</string>
         </property>
        </column>
       </widget>
@@ -233,49 +243,49 @@
    </widget>
   </widget>
   <widget class="QDockWidget" name="assemblerDock">
- <property name="windowTitle">
-  <string>Assembler</string>
- </property>
- <attribute name="dockWidgetArea">
-  <number>2</number>
- </attribute>
- <widget class="QWidget" name="assemblerContents">
-  <layout class="QVBoxLayout" name="assemblerLayout">
-   <item>
-    <widget class="QTextEdit" name="assemblyInput">
-     <property name="placeholderText">
-      <string>Paste assembly here, or load a .S file...</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <layout class="QHBoxLayout" name="assemblerBtnLayout">
+   <property name="windowTitle">
+    <string>Assembler</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>2</number>
+   </attribute>
+   <widget class="QWidget" name="assemblerContents">
+    <layout class="QVBoxLayout" name="assemblerLayout">
      <item>
-      <widget class="QPushButton" name="loadFileBtn">
-       <property name="text">
-        <string>Load File</string>
+      <widget class="QTextEdit" name="assemblyInput">
+       <property name="placeholderText">
+        <string>Paste assembly here, or load a .S file...</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="assembleBtn">
+      <layout class="QHBoxLayout" name="assemblerBtnLayout">
+       <item>
+        <widget class="QPushButton" name="loadFileBtn">
+         <property name="text">
+          <string>Load File</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="assembleBtn">
+         <property name="text">
+          <string>Assemble</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="QLabel" name="assembleStatus">
        <property name="text">
-        <string>Assemble</string>
+        <string>No file loaded.</string>
        </property>
       </widget>
      </item>
     </layout>
-   </item>
-   <item>
-    <widget class="QLabel" name="assembleStatus">
-     <property name="text">
-      <string>No file loaded.</string>
-     </property>
-    </widget>
-   </item>
-  </layout>
- </widget>
-</widget>
+   </widget>
+  </widget>
   <action name="actionRun">
    <property name="text">
     <string>Run</string>

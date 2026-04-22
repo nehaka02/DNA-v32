@@ -26,24 +26,6 @@ void single_clock_cycle(Pipeline* pipeline, bool cacheEnabled) {
     curClockCycle = pipeline -> global_clock;
     (pipeline->global_clock)++;
 
-    // // Handle squash after write_back
-    // if(pipeline->squashed){
-    //     //pipeline->fInstr.is_squashed=true;
-    //     pipeline->dInstr.is_squashed=true;
-    //     pipeline->dInstr.is_blocked=false;
-
-    //     pipeline->eInstr.is_squashed=true;
-    //     pipeline->eInstr.is_blocked=false;
-
-    //     pipeline->mInstr.is_squashed=true;
-    //     pipeline->mInstr.is_blocked=false;
-
-    //     pipeline->wInstr.is_squashed=true;
-    //     pipeline->wInstr.is_blocked=false;
-
-    //     pipeline->squashed = false;
-
-    // }
 
     int pc_to_fetch = intRegs.r[13];// This is specifically used by fetch
 
@@ -169,6 +151,10 @@ void single_clock_cycle(Pipeline* pipeline, bool cacheEnabled) {
     // Assign blocks and stalls: blocks propagate backwards, stalls go forward
     // Forward instruction struct when possible
 
+    // Before M handling
+    std::cout << "PRE-M: mInstr.is_blocked=" << pipeline->mInstr.is_blocked
+              << " eInstr.is_blocked=" << pipeline->eInstr.is_blocked << std::endl;
+
     // Handles stage M
     if (is_mwaiting) {
         pipeline->mInstr.is_blocked = true;
@@ -183,6 +169,10 @@ void single_clock_cycle(Pipeline* pipeline, bool cacheEnabled) {
         pipeline->eInstr.is_blocked = false;
         pipeline->wInstr = pipeline->mInstr;
     }
+
+    // Before E handling
+    std::cout << "PRE-E: eInstr.is_blocked=" << pipeline->eInstr.is_blocked
+              << " mInstr.is_blocked=" << pipeline->mInstr.is_blocked << std::endl;
 
     // Handles stage E
     if(pipeline->eInstr.is_squashed){
@@ -202,9 +192,11 @@ void single_clock_cycle(Pipeline* pipeline, bool cacheEnabled) {
         pipeline->dInstr.is_blocked = false; // Unblock D (D can block itself again if waiting)
         if (!pipeline->mInstr.is_blocked) { // M is not blocked, forward instruction struct
             pipeline->mInstr = pipeline->eInstr;
-            pipeline->dInstr.is_blocked = false;
         }
     }
+    // Before D handling
+    std::cout << "PRE-D: eInstr.is_blocked=" << pipeline->eInstr.is_blocked
+              << " is_dwaiting=" << is_dwaiting << std::endl;
 
     // Handles stage D
     if(is_dwaiting) {
@@ -214,10 +206,13 @@ void single_clock_cycle(Pipeline* pipeline, bool cacheEnabled) {
             pipeline->eInstr.is_stalled = true;
         }
     }
-    else { // if D is not blocked, then E is not blocked, forward instruction struct
+    else { // if D is not blocked, then E is not blocked, forward instruction struct THIS IS NOT NECESSARILY TRUE!
         pipeline->fInstr.is_blocked = false; // Unblock F (F can block itself again if waiting)
-        pipeline->dInstr.is_blocked = false;
-        pipeline->eInstr = pipeline->dInstr;
+        if(!pipeline->eInstr.is_blocked){
+            pipeline->dInstr.is_blocked = false;
+            pipeline->eInstr = pipeline->dInstr;
+        }
+
     }
 
     // Handles stage F
@@ -231,7 +226,7 @@ void single_clock_cycle(Pipeline* pipeline, bool cacheEnabled) {
     }
     else {
         pipeline->fInstr.is_blocked = false;
-        if (!pipeline->dInstr.is_blocked) {
+        if (!pipeline->dInstr.is_blocked && !pipeline->eInstr.is_blocked) {
             pipeline->dInstr = pipeline-> fInstr;
             // Only increment PC if we forwarded a real instruction
             if(pipeline->fInstr.bin_instr != -1 && !pipeline->fInstr.is_squashed){
@@ -242,7 +237,6 @@ void single_clock_cycle(Pipeline* pipeline, bool cacheEnabled) {
 
     }
 
-
     // FIXME
 
     std::cout << "POST-FORWARD SQUASH FLAGS: F=" << pipeline->fInstr.is_squashed
@@ -252,8 +246,6 @@ void single_clock_cycle(Pipeline* pipeline, bool cacheEnabled) {
               << " W=" << pipeline->wInstr.is_squashed << std::endl;
 
 }
-
-
 
 
 

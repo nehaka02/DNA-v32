@@ -159,6 +159,7 @@ bool Pipeline::decode(){
                 this->dInstr.src1v[0] = intRegs.r[src1];
                 //this->dInstr.immediate = immediate;
                 this->dInstr.immediate = helper_unsigned_to_signed(immediate, 21);
+                pendRegs.r[14]++; // flags register
                 return false;
             }
 
