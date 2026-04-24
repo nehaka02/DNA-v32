@@ -31,6 +31,7 @@
    <addaction name="actionsetBreakpoint"/>
    <addaction name="actionclearBreakpoint"/>
    <addaction name="actionToggleCache"/>
+   <addaction name="actionTogglePipeline"/>
   </widget>
   <widget class="QDockWidget" name="registerDock">
    <property name="windowTitle">
@@ -106,7 +107,7 @@
        </attribute>
        <column>
         <property name="text">
-         <string>Address</string>
+         <string>Line</string>
         </property>
        </column>
        <column>
@@ -329,6 +330,14 @@
   <action name="actionToggleCache">
    <property name="text">
     <string>Cache: ON</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionTogglePipeline">
+   <property name="text">
+    <string>Pipeline: ON</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>

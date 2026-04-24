@@ -18,6 +18,9 @@
 #include <QProcess>
 #include <QTemporaryFile>
 
+// Default file path
+QString currentFilePath = "demos/demo_commands2.txt";
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -32,6 +35,9 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->actionclearBreakpoint, &QAction::triggered, this, &MainWindow::onClearBreakpoint);
     connect(ui->actionToggleCache, &QAction::triggered, this, &MainWindow::onToggleCache);
     ui->actionToggleCache->setEnabled(true);
+
+    connect(ui->actionTogglePipeline, &QAction::triggered, this, &MainWindow::onTogglePipeline);
+    ui->actionTogglePipeline->setEnabled(true);
 
     m_breakpointLabel = new QLabel("Breakpoint: none");
     ui->toolBar->addWidget(m_breakpointLabel);
@@ -116,18 +122,36 @@ void MainWindow::initSimulator()
     //     pendVectorRegs.q[i] = 0;
     // }
 
-    std::ifstream file("demos/demo_commands2.txt");
-    if (!file.is_open()) {
-        std::cout << "Error: could not open demo_commands2.txt" << std::endl;
+    // std::ifstream file("demos/demo_commands2.txt);
+    // if (!file.is_open()) {
+    //     std::cout << "Error: could not open file" << std::endl;
+    //     return;
+    // }
+
+    // std::string userInput;
+    // while (std::getline(file, userInput)) {
+    //     std::istringstream input(userInput);
+    //     std::vector<std::string> tokens;
+    //     std::string token;
+    //     while (input >> token) tokens.push_back(token);
+    //     if (!tokens.empty()) parseInput(tokens, m_cache);
+    // }
+
+    QFile file(currentFilePath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        std::cout << "Error: could not open file" << std::endl;
         return;
     }
 
-    std::string userInput;
-    while (std::getline(file, userInput)) {
-        std::istringstream input(userInput);
+    QTextStream in(&file);
+    while (!in.atEnd()) {
+        QString line = in.readLine();
+        std::istringstream input(line.toStdString());
+
         std::vector<std::string> tokens;
         std::string token;
         while (input >> token) tokens.push_back(token);
+
         if (!tokens.empty()) parseInput(tokens, m_cache);
     }
 
@@ -138,6 +162,7 @@ void MainWindow::initSimulator()
 void MainWindow::onRun()
 {
     ui->actionToggleCache->setEnabled(false);
+    ui->actionTogglePipeline->setEnabled(false);
     if (!m_pipeline || !m_machineActive) return;
     runLoop();
 }
@@ -145,9 +170,10 @@ void MainWindow::onRun()
 void MainWindow::onStep()
 {
     ui->actionToggleCache->setEnabled(false);
+    ui->actionTogglePipeline->setEnabled(false);
     if (!m_pipeline || !m_machineActive) return;
 
-    single_clock_cycle(m_pipeline, cacheEnabled);
+    single_clock_cycle(m_pipeline, cacheEnabled, pipelineEnabled);
 
     std::cout << "TERM CHECK: op=" << m_pipeline->displayW.opcode
               << " type=" << m_pipeline->displayW.type_code
@@ -173,6 +199,7 @@ void MainWindow::onReset()
 {
     initSimulator();
     ui->actionToggleCache->setEnabled(true);
+    ui->actionTogglePipeline->setEnabled(true);
     refresh();
 }
 
@@ -205,13 +232,18 @@ void MainWindow::onToggleCache()
     ui->actionToggleCache->setText(cacheEnabled ? "Cache: ON" : "Cache: OFF");
 }
 
+void MainWindow::onTogglePipeline()
+{
+    pipelineEnabled = !pipelineEnabled;
+    ui->actionTogglePipeline->setText(pipelineEnabled ? "Pipeline: ON" : "Pipeline: OFF");
+}
 
 void MainWindow::runLoop()
 {
     ui->actionToggleCache->setEnabled(false);
     int i = 0;
     while (m_machineActive && i < 10000) {
-        single_clock_cycle(m_pipeline, cacheEnabled);
+        single_clock_cycle(m_pipeline, cacheEnabled, pipelineEnabled);
         i++;
 
         // if (m_pipeline->wInstr.opcode == 5) {
@@ -389,7 +421,7 @@ void MainWindow::onLoadAssemblyFile()
         ui->assembleStatus->setText("Failed to open file.");
         return;
     }
-
+    currentFilePath = fileName;
     QTextStream in(&file);
     QString content = in.readAll();
     file.close();
@@ -401,6 +433,8 @@ void MainWindow::onLoadAssemblyFile()
 void MainWindow::onAssemble()
 {
     initSimulator();
+    ui->actionToggleCache->setEnabled(true);
+    ui->actionTogglePipeline->setEnabled(true);
     QString text = ui->assemblyInput->toPlainText();
 
     // Write file to temporary file to provide to python assembler
@@ -409,12 +443,11 @@ void MainWindow::onAssemble()
     QString outputFile = QDir::currentPath() + "/output.txt";
     //QString inputFile = "temp.s";
     QFile file(inputFile);
-
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         ui->assembleStatus->setText("Failed to write temp file.");
         return;
     }
-
+    currentFilePath = outputFile;
     QTextStream out(&file);
     out << text;
     file.close();

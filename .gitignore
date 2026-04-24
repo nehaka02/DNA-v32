@@ -23,3 +23,7 @@ __pycache__/
 
 # General
 .DS_Store     
+
+# Output from UI --> Assembler communication
+temp.s
+output.txt

@@ -108,7 +108,7 @@ class Assembler:
 
                 tokens = line.split()
                 # if valid instruction and not a label
-                operation = tokens[0]
+                operation = tokens[0].upper()
                 type_code = mnemonic_table[operation][0]
                 opcode = mnemonic_table[operation][1]
                 instr_struct = mnemonic_table[operation][2]

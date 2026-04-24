@@ -44,7 +44,7 @@ public:
 
     Cache *newCache;
     int global_clock;
-    bool squashed = false; 
+    bool squashed = false;
 
     Pipeline(Cache* externalCache);
 

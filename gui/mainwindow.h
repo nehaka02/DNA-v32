@@ -33,6 +33,7 @@ private slots:
     void onSetBreakpoint();
     void onClearBreakpoint();
     void onToggleCache();
+    void onTogglePipeline();
     void onLoadAssemblyFile();
     void onAssemble();
 
@@ -49,6 +50,7 @@ private:
     QLabel* m_breakpointLabel = nullptr;
     QLabel* m_clockLabel = nullptr;
     bool cacheEnabled = true;
+    bool pipelineEnabled = true;
 
     void initSimulator();
     void runLoop();

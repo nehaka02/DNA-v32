@@ -14,7 +14,6 @@ Pipeline::Pipeline(Cache* externalCache) {
     this->wInstr = {};
     this->global_clock = 0;
     this->newCache = externalCache;
-
 }
 
 Registers::IntegerRegs intRegs;
@@ -114,6 +113,7 @@ bool Pipeline::decode(){
                 int src1 = (bin >> 17) & 0b1111;
                 int immediate = bin & 0x1FFFF; // 17 ones
                 if (pendRegs.r[dest] != 0 || pendRegs.r[src1] != 0) {
+                    this->dInstr.is_blocked = true;
                     return true;
                 }
                 this->dInstr.destv[0] = dest;
@@ -130,6 +130,7 @@ bool Pipeline::decode(){
                 int src1 = (bin >> 21) & 0b1111;
                 int src2 = (bin >> 17) & 0b1111;
                 if (pendRegs.r[src1] != 0 || pendRegs.r[src2] != 0) {
+                    this->dInstr.is_blocked = true;
                     return true;
                 }
                 this->dInstr.src1v[0] = intRegs.r[src1];
@@ -154,6 +155,7 @@ bool Pipeline::decode(){
                 int src1 = (bin >> 21) & 0b1111;
                 int immediate = (bin & 0x1FFFFF); // 21 ones
                 if(pendRegs.r[src1] != 0 ) {
+                    this->dInstr.is_blocked = true;
                     return true;
                 }
                 this->dInstr.src1v[0] = intRegs.r[src1];
@@ -200,6 +202,7 @@ bool Pipeline::decode(){
                 int dest = (bin >> 22) & 0b1111;
                 int src = (bin >> 18) & 0b1111;
                 if (pendRegs.r[dest] != 0 || pendRegs.r[src] != 0) {
+                    this->dInstr.is_blocked = true;
                     return true;
                 }
                 this->dInstr.destv[0] = dest; // only putting register number in destv
@@ -214,6 +217,7 @@ bool Pipeline::decode(){
                 int dest = (bin >> 22) & 0b1111;
                 int src = (bin >> 18) & 0b1111;
                 if (pendRegs.r[dest] != 0 || pendRegs.r[src] != 0) {
+                    this->dInstr.is_blocked = true;
                     return true;
                 }
                 this->dInstr.destv[0] = intRegs.r[dest]; // dest contains memory address
@@ -230,6 +234,7 @@ bool Pipeline::decode(){
                 int dest = (bin >> 22) & 0b1111;
                 int src = (bin >> 18) & 0b1111;
                 if (pendVectorRegs.q[dest] != 0 || pendRegs.r[src] != 0) {
+                    this->dInstr.is_blocked = true;
                     return true;
                 }
                 this->dInstr.destv[0] = dest; // only putting register number in destv
@@ -245,6 +250,7 @@ bool Pipeline::decode(){
                 int dest = (bin >> 22) & 0b1111;
                 int src = (bin >> 18) & 0b1111;
                 if (pendRegs.r[dest] != 0 || pendVectorRegs.q[src] != 0) {
+                    this->dInstr.is_blocked = true;
                     return true;
                 }
                 this->dInstr.destv[0] = intRegs.r[dest]; // dest contains memory address
@@ -257,6 +263,7 @@ bool Pipeline::decode(){
 
             // Halt
             if(opcode == 5){
+                this->dInstr.is_blocked = true;
                 this->dInstr.halt_signal = true;
             }
 
@@ -267,6 +274,7 @@ bool Pipeline::decode(){
                 int offset = (bin & 0x3FFFF); // this will go in immediate field of instruction object
                                               // 18 ones
                 if (pendRegs.r[dest] != 0 || pendRegs.r[base] != 0) {
+                    this->dInstr.is_blocked = true;
                     return true;
                 }
 
@@ -285,6 +293,7 @@ bool Pipeline::decode(){
                 int offset = (bin & 0x3FFFF); // this will go in immediate field of instruction object
 
                 if (pendRegs.r[src1] != 0 || pendRegs.r[base] != 0) {
+                    this->dInstr.is_blocked = true;
                     return true;
                 }
 
@@ -424,6 +433,7 @@ bool Pipeline::memory_access(bool cacheEnabled){
                     }
                     else{
                         this->newCache->clock++;
+                        this->mInstr.is_blocked = true;
                         return true;
                     }
 
@@ -438,6 +448,7 @@ bool Pipeline::memory_access(bool cacheEnabled){
                     }
                     else{
                         this->newCache->clock++;
+                        this->mInstr.is_blocked = true;
                         return true;
                     }
 
@@ -450,6 +461,7 @@ bool Pipeline::memory_access(bool cacheEnabled){
                     }
                     else{
                         this->newCache->clock++;
+                        this->mInstr.is_blocked = true;
                         return true;
                     }
                     break;
@@ -461,6 +473,7 @@ bool Pipeline::memory_access(bool cacheEnabled){
                     }
                     else{
                         this->newCache->clock++;
+                        this->mInstr.is_blocked = true;
                         return true;
                     }
                     break;
@@ -479,6 +492,7 @@ bool Pipeline::memory_access(bool cacheEnabled){
                     }
                     else{
                         this->newCache->clock++;
+                        this->mInstr.is_blocked = true;
                         return true;
                     }
                     break;
@@ -510,6 +524,7 @@ bool Pipeline::memory_access(bool cacheEnabled){
                     }
                     else{
                         this->newCache->clock++;
+                        this->mInstr.is_blocked = true;
                         return true;
                     }
                 }
