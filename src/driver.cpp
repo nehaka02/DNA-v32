@@ -24,8 +24,8 @@ void single_clock_cycle(Pipeline* pipeline, bool cacheEnabled, bool pipelineEnab
 
     // FIXME
     std::cout << "PEND: r0=" << pendRegs.r[0]
-              << " r1=" << pendRegs.r[1] << std::endl;
-
+              << " r1=" << pendRegs.r[1]
+              << " r2=" << pendRegs.r[2] << std::endl;
 
     // Fetch --> Decode --> Execute --> Memory Access --> Write Back
     //extern Registers::IntegerRegs intRegs;
@@ -112,14 +112,14 @@ void single_clock_cycle(Pipeline* pipeline, bool cacheEnabled, bool pipelineEnab
 
             // Undo pending reg increments for squashed instructions still in D/E/M
             auto undoPending = [](InstructionObject& instr){
-                if(instr.bin_instr == -1 || instr.is_stalled || instr.is_squashed) return;
+                if(instr.bin_instr == -1 || instr.is_stalled || instr.is_squashed || !instr.pend_incremented) return;
 
                 if(instr.type_code == 0){
                     int op = instr.opcode;
                     if((op >= 0 && op <= 11) || (op >= 15 && op <= 26)){
                         pendRegs.r[instr.destv[0]]--;
                     }
-                    if(op == 27) pendRegs.r[14]--;  // CMP
+                    if(op == 27 || op == 30) pendRegs.r[14]--;  // CMP
                 }
                 if(instr.type_code == 1){
                     pendRegs.r[13]--;  // PC
@@ -221,8 +221,8 @@ void single_clock_cycle(Pipeline* pipeline, bool cacheEnabled, bool pipelineEnab
         }
         else { // if D is not blocked, then E is not blocked, forward instruction struct THIS IS NOT NECESSARILY TRUE!
             pipeline->fInstr.is_blocked = false; // Unblock F (F can block itself again if waiting)
+            pipeline->dInstr.is_blocked = false;
             if(!pipeline->eInstr.is_blocked){
-                pipeline->dInstr.is_blocked = false;
                 pipeline->eInstr = pipeline->dInstr;
             }
 
@@ -263,70 +263,74 @@ void single_clock_cycle(Pipeline* pipeline, bool cacheEnabled, bool pipelineEnab
     else{ // If pipeline not enabled, go through instruction stage by stage
 
         switch (pipelineStage){
-            // Corresonding stage will run and forward
-            case 1: {// Fetch
-                bool is_fwaiting = pipeline->fetch(cacheEnabled, pc_to_fetch);
+        // Corresonding stage will run and forward
+        case 1: {// Fetch
+            bool is_fwaiting = pipeline->fetch(cacheEnabled, pc_to_fetch);
+            helper_snapshot(pipeline);
+            // Forward
+            if (is_fwaiting) {
+                pipeline->fInstr.is_blocked = true;
                 helper_snapshot(pipeline);
-                // Forward
-                if (is_fwaiting) {
-                    pipeline->fInstr.is_blocked = true;
-                    helper_snapshot(pipeline);
-                }
-                else {
-                    pipeline->fInstr.is_blocked = false;
-                    helper_snapshot(pipeline);
-                    pipeline -> dInstr = pipeline -> fInstr;
-                    pipeline -> fInstr = InstructionObject();
-                    pipelineStage++;
-                    if (pipelineStage > 5) pipelineStage = 1;
-                    intRegs.r[13]++;
-                }
-                break;
             }
-            case 2: // Decode
-                pipeline -> decode();
+            else {
+                pipeline->fInstr.is_blocked = false;
                 helper_snapshot(pipeline);
-                pipeline -> eInstr = pipeline -> dInstr;
-                pipeline -> dInstr = InstructionObject();
+                pipeline -> dInstr = pipeline -> fInstr;
+                pipeline -> fInstr = InstructionObject();
                 pipelineStage++;
                 if (pipelineStage > 5) pipelineStage = 1;
-                break;
-            case 3: // Execute
-                pipeline -> execute();
-                helper_snapshot(pipeline);
-                pipeline -> mInstr = pipeline -> eInstr;
-                pipeline -> eInstr = InstructionObject();
-                pipelineStage++;
-                if (pipelineStage > 5) pipelineStage = 1;
-                break;
-            case 4: {// Memory Access
-                bool is_mwaiting = pipeline->memory_access(cacheEnabled);
-                if (is_mwaiting) {
-                    pipeline->mInstr.is_blocked = true;
-                    helper_snapshot(pipeline);
-                }
-                else {
-                    pipeline->mInstr.is_blocked = false;
-                    helper_snapshot(pipeline);
-                    pipeline -> wInstr = pipeline -> mInstr;
-                    pipeline -> mInstr = InstructionObject();
-                    pipelineStage++;
-                    if (pipelineStage > 5) pipelineStage = 1;
-                }
-                break;
+                intRegs.r[13]++;
             }
-            case 5: // Write Back
-                pipeline -> write_back();
+            break;
+        }
+        case 2: // Decode
+            pipeline -> decode();
+            helper_snapshot(pipeline);
+            pipeline -> eInstr = pipeline -> dInstr;
+            pipeline -> dInstr = InstructionObject();
+            pipelineStage++;
+            if (pipelineStage > 5) pipelineStage = 1;
+            break;
+        case 3: // Execute
+            pipeline -> execute();
+            helper_snapshot(pipeline);
+            pipeline -> mInstr = pipeline -> eInstr;
+            pipeline -> eInstr = InstructionObject();
+            pipelineStage++;
+            if (pipelineStage > 5) pipelineStage = 1;
+            break;
+        case 4: {// Memory Access
+            bool is_mwaiting = pipeline->memory_access(cacheEnabled);
+            if (is_mwaiting) {
+                pipeline->mInstr.is_blocked = true;
                 helper_snapshot(pipeline);
-                pipeline -> wInstr = InstructionObject();
+            }
+            else {
+                pipeline->mInstr.is_blocked = false;
+                helper_snapshot(pipeline);
+                pipeline -> wInstr = pipeline -> mInstr;
+                pipeline -> mInstr = InstructionObject();
                 pipelineStage++;
                 if (pipelineStage > 5) pipelineStage = 1;
-                break;
-            default:
-                std::cout << "invalid pipeline stage" << std::endl;
+            }
+            break;
+        }
+        case 5: // Write Back
+            pipeline -> write_back();
+            helper_snapshot(pipeline);
+            pipeline -> wInstr = InstructionObject();
+            pipelineStage++;
+            if (pipelineStage > 5) pipelineStage = 1;
+            break;
+        default:
+            std::cout << "invalid pipeline stage" << std::endl;
         }
     }
 }
+
+
+
+
 
 
 

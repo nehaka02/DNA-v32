@@ -36,6 +36,7 @@ bool Pipeline::fetch(bool cacheEnabled, int pc_to_fetch){
 
         //FIXME
         std::cout << "FETCH SUCCESS: clearing is_squashed" << std::endl;
+        std::cout << "FETCH RETURNING false (success)" << std::endl;
 
         this->fInstr.address = pc_to_fetch;
         this->fInstr.bin_instr = static_cast<int>(stoul(readValue.substr(6)));
@@ -50,9 +51,9 @@ bool Pipeline::fetch(bool cacheEnabled, int pc_to_fetch){
         return false;
     }
     else{
-
         //FIXME
         std::cout << "FETCH MISS" << std::endl;
+        std::cout << "FETCH RETURNING true (waiting). readValue=" << readValue << std::endl;
 
         this->fInstr = InstructionObject{};
         this->fInstr.is_blocked = true;
@@ -82,6 +83,9 @@ bool Pipeline::decode(){
         case 0:{
             int opcode = (bin >> 25) & 0b11111;
             this->dInstr.opcode = opcode;
+            std::cout << "TYPE0 DECODE: bin=" << bin << " opcode=" << opcode << " addr=" << this->dInstr.address << std::endl;
+            // int opcode = (bin >> 25) & 0b11111;
+            this->dInstr.opcode = opcode;
 
             // scalar instruction (except CMP and immediate shifts)
             if(opcode >= 0 && opcode <= 11){
@@ -89,7 +93,7 @@ bool Pipeline::decode(){
                 int dest = (bin >> 21) & 0b1111;
                 int src1 = (bin >> 17) & 0b1111;
                 int src2 = (bin >> 13) & 0b1111;
-                if (pendRegs.r[dest] != 0 || pendRegs.r[src1] != 0 || pendRegs.r[src2] != 0) {
+                if (pendRegs.r[src1] != 0 || pendRegs.r[src2] != 0) {
                     return true;
                 }
                 //this->dInstr.destv.push_back(dest);
@@ -97,7 +101,10 @@ bool Pipeline::decode(){
                 this->dInstr.src1v[0] = intRegs.r[src1];
                 this->dInstr.src2v[0] = intRegs.r[src2];
 
-                pendRegs.r[dest]++;
+                if (!this->dInstr.pend_incremented) {
+                    pendRegs.r[dest]++;
+                    this->dInstr.pend_incremented = true;
+                }
                 return false;
 
             }
@@ -112,7 +119,7 @@ bool Pipeline::decode(){
                 int dest = (bin >> 21) & 0b1111;
                 int src1 = (bin >> 17) & 0b1111;
                 int immediate = bin & 0x1FFFF; // 17 ones
-                if (pendRegs.r[dest] != 0 || pendRegs.r[src1] != 0) {
+                if (pendRegs.r[src1] != 0) {
                     this->dInstr.is_blocked = true;
                     return true;
                 }
@@ -122,7 +129,10 @@ bool Pipeline::decode(){
                 this->dInstr.immediate = helper_unsigned_to_signed(immediate, 17);
 
 
-                pendRegs.r[dest]++;
+                if (!this->dInstr.pend_incremented) {
+                    pendRegs.r[dest]++;
+                    this->dInstr.pend_incremented = true;
+                }
                 return false;
             }
             // compare (note compare got moved from opcode 28 --> 27!)
@@ -136,7 +146,11 @@ bool Pipeline::decode(){
                 this->dInstr.src1v[0] = intRegs.r[src1];
                 this->dInstr.src2v[0] = intRegs.r[src2];
 
-                pendRegs.r[14]++; // flags register
+                if (!this->dInstr.pend_incremented) {
+                    pendRegs.r[14]++;
+                    this->dInstr.pend_incremented = true;
+                }
+                std::cout << "CMP INSTR ADDR =" << this->dInstr.address << std::endl;
                 return false;
             }
             // VEQ
@@ -161,7 +175,10 @@ bool Pipeline::decode(){
                 this->dInstr.src1v[0] = intRegs.r[src1];
                 //this->dInstr.immediate = immediate;
                 this->dInstr.immediate = helper_unsigned_to_signed(immediate, 21);
-                pendRegs.r[14]++; // flags register
+                if (!this->dInstr.pend_incremented) {
+                    pendRegs.r[14]++;
+                    this->dInstr.pend_incremented = true;
+                }
                 return false;
             }
 
@@ -175,11 +192,19 @@ bool Pipeline::decode(){
 
             //everything besides BX instruction
             if(opcode >= 0 && opcode <= 7){
+                std::cout << "BRANCH DECODE: opcode=" << opcode
+                          << " pendRegs.r[14]=" << pendRegs.r[14] << std::endl;
+                if(pendRegs.r[14] != 0){
+                    return true;
+                }
                 int offset =  bin & 0x3FFFFFF;
                 this->dInstr.branch_offset = helper_unsigned_to_signed(offset, 26);
 
                 if(opcode == 7) { // LR is pending
-                    pendRegs.r[12]++;
+                    if (!this->dInstr.pend_incremented) {
+                        pendRegs.r[12]++;
+                        this->dInstr.pend_incremented = true;
+                    }
                 }
 
                 return false;
@@ -188,7 +213,10 @@ bool Pipeline::decode(){
                 int src = (bin >> 22) & 0b1111;
                 this->dInstr.src1v[0] = intRegs.r[src];
             }
-            pendRegs.r[13]++; // PC register pending
+            if (!this->dInstr.pend_incremented) {
+                pendRegs.r[13]++;
+                this->dInstr.pend_incremented = true;
+            }
             break;
         }
 
@@ -201,14 +229,17 @@ bool Pipeline::decode(){
             if(opcode == 0 || opcode == 1 ){
                 int dest = (bin >> 22) & 0b1111;
                 int src = (bin >> 18) & 0b1111;
-                if (pendRegs.r[dest] != 0 || pendRegs.r[src] != 0) {
+                if (pendRegs.r[src] != 0) {
                     this->dInstr.is_blocked = true;
                     return true;
                 }
                 this->dInstr.destv[0] = dest; // only putting register number in destv
                 this->dInstr.src1v[0] = intRegs.r[src];
 
-                pendRegs.r[dest]++;
+                if (!this->dInstr.pend_incremented) {
+                    pendRegs.r[dest]++;
+                    this->dInstr.pend_incremented = true;
+                }
                 return false;
             }
 
@@ -222,6 +253,10 @@ bool Pipeline::decode(){
                 }
                 this->dInstr.destv[0] = intRegs.r[dest]; // dest contains memory address
                 this->dInstr.src1v[0] = intRegs.r[src]; // src contains value to write to memory
+                std::cout << "STR DECODE: pendRegs.r[dest]=" << pendRegs.r[dest]
+                          << " pendRegs.r[src]=" << pendRegs.r[src]
+                          << " intRegs.r[dest]=" << intRegs.r[dest]
+                          << " intRegs.r[src]=" << intRegs.r[src] << std::endl;
 
                 // nothing gets put in pending registers because we aren't writing to any registers
 
@@ -233,14 +268,17 @@ bool Pipeline::decode(){
             if(opcode == 3){
                 int dest = (bin >> 22) & 0b1111;
                 int src = (bin >> 18) & 0b1111;
-                if (pendVectorRegs.q[dest] != 0 || pendRegs.r[src] != 0) {
+                if (pendRegs.r[src] != 0) {
                     this->dInstr.is_blocked = true;
                     return true;
                 }
                 this->dInstr.destv[0] = dest; // only putting register number in destv
                 this->dInstr.src1v[0] = intRegs.r[src]; // putting the memory address of the source vector in src1v
 
-                pendVectorRegs.q[dest]++;
+                if (!this->dInstr.pend_incremented) {
+                    pendVectorRegs.q[dest]++;
+                    this->dInstr.pend_incremented = true;
+                }
                 return false;
 
             }
@@ -249,7 +287,7 @@ bool Pipeline::decode(){
             if(opcode == 4){
                 int dest = (bin >> 22) & 0b1111;
                 int src = (bin >> 18) & 0b1111;
-                if (pendRegs.r[dest] != 0 || pendVectorRegs.q[src] != 0) {
+                if (pendVectorRegs.q[src] != 0) {
                     this->dInstr.is_blocked = true;
                     return true;
                 }
@@ -273,7 +311,7 @@ bool Pipeline::decode(){
                 int base = (bin >> 18) & 0b1111; // this will go in src1 field of instruction object (base is a register!)
                 int offset = (bin & 0x3FFFF); // this will go in immediate field of instruction object
                                               // 18 ones
-                if (pendRegs.r[dest] != 0 || pendRegs.r[base] != 0) {
+                if (pendRegs.r[base] != 0) {
                     this->dInstr.is_blocked = true;
                     return true;
                 }
@@ -283,7 +321,10 @@ bool Pipeline::decode(){
                 //this->dInstr.immediate = offset;
                 this->dInstr.immediate = helper_unsigned_to_signed(offset, 18);
 
-                pendRegs.r[dest]++;
+                if (!this->dInstr.pend_incremented) {
+                    pendRegs.r[dest]++;
+                    this->dInstr.pend_incremented = true;
+                }
                 return false;
             }
             // store base + offset
@@ -311,7 +352,10 @@ bool Pipeline::decode(){
                 this->dInstr.destv[0] = dest;
                 //this->dInstr.immediate = immediate;
                 this->dInstr.immediate = helper_unsigned_to_signed(immediate, 22);
-                pendRegs.r[dest]++;
+                if (!this->dInstr.pend_incremented) {
+                    pendRegs.r[dest]++;
+                    this->dInstr.pend_incremented = true;
+                }
                 return false;
             }
 
@@ -343,6 +387,8 @@ void Pipeline::execute(){
                     this->eInstr.src1v[0],
                     this->eInstr.src2v[0]
                     );
+                std::cout << "CMP EX: src1v[0]=" << this->eInstr.src1v[0]
+                          << " src2v[0]=" << this->eInstr.src2v[0] << std::endl;
             }
             // vector instructions
             if(opcode == 12 || opcode == 13 || opcode == 14){
@@ -414,7 +460,6 @@ bool Pipeline::memory_access(bool cacheEnabled){
     if(this->mInstr.is_squashed || this->mInstr.is_stalled || this->mInstr.bin_instr == -1 || this->mInstr.bin_instr == -2){
         return false;
     }
-
     switch(this->mInstr.type_code){
         case 0: // ALU, do nothing
             break;
@@ -429,6 +474,7 @@ bool Pipeline::memory_access(bool cacheEnabled){
                     std::string readValue = this->newCache->readMemory(this->mInstr.result[0], 4, false, cacheEnabled);
                     if (readValue.rfind("Done:", 0) == 0) { // starts with "Done:"
                         this->mInstr.result[0] =static_cast<int>(stoul(readValue.substr(6)));
+                        newCache->currentlyServicing = 0;
                         return false;
                     }
                     else{
@@ -444,6 +490,7 @@ bool Pipeline::memory_access(bool cacheEnabled){
                     std::string readValue = this->newCache->readMemory(this->mInstr.result[0], 4, false, cacheEnabled);
                     if (readValue.rfind("Done:", 0) == 0) { // starts with "Done:"
                         this->mInstr.result[0] =static_cast<int>(stoul(readValue.substr(6)));
+                        newCache->currentlyServicing = 0;
                         return false;
                     }
                     else{
@@ -457,6 +504,7 @@ bool Pipeline::memory_access(bool cacheEnabled){
                 case 2:{ // STR
                     std::string status = this->newCache->writeMemory(this->mInstr.destv[0], this->mInstr.src1v, 4, false, cacheEnabled);
                     if (status.rfind("Done", 0) == 0) { // starts with "Done"
+                        newCache->currentlyServicing = 0;
                         return false;
                     }
                     else{
@@ -469,6 +517,7 @@ bool Pipeline::memory_access(bool cacheEnabled){
                 case 7: { // STRB
                     std::string status = this->newCache->writeMemory(this->mInstr.result[0], this->mInstr.src1v, 4, false, cacheEnabled);
                     if (status.rfind("Done", 0) == 0) { // starts with "Done"
+                        newCache->currentlyServicing = 0;
                         return false;
                     }
                     else{
@@ -488,6 +537,7 @@ bool Pipeline::memory_access(bool cacheEnabled){
                 case 4:{ // VSTR
                     std::string status = this->newCache->writeMemory((this->mInstr.destv[0])%4, this->mInstr.src1v, 4, true, cacheEnabled);
                     if (status.rfind("Done", 0) == 0) { // starts with "Done"
+                        newCache->currentlyServicing = 0;
                         return false;
                     }
                     else{
@@ -502,6 +552,7 @@ bool Pipeline::memory_access(bool cacheEnabled){
                     std::string readValue = this->newCache->readMemory((this->mInstr.result[0])%4, 4, true, cacheEnabled);
 
                     if (readValue.rfind("Done:", 0) == 0) {
+                        newCache->currentlyServicing = 0;
 
                         // Remove "Done: "
                         std::string values = readValue.substr(6);
@@ -554,6 +605,9 @@ void Pipeline::write_back(){
                 int V = (result > this->wInstr.src1v[0]) ? 1 : 0;  // Overflow
                 intRegs.r[14] = (V << 2) | (Z << 1) | N;   // Order: 00000.....V Z B
                 pendRegs.r[14]--;
+                std::cout << "CMP WB: src1=" << this->wInstr.src1v[0]
+                          << " src2=" << this->wInstr.src2v[0]
+                          << " result=" << this->wInstr.result[0] << std::endl;
                 break;
             }
 
@@ -727,6 +781,10 @@ int Pipeline::branch_helper(int addr) {
     if(branch){
         return addr + this->wInstr.branch_offset;
     }
+
+    std::cout << "BLE: CR=" << intRegs.r[14]
+              << " N=" << N << " Z=" << Z
+              << " branch=" << branch << std::endl;
 
     return intRegs.r[13];
 }

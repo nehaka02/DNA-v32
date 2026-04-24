@@ -29,111 +29,114 @@ void Cache::decodeAddress(int address, int &line, int &index, int &offset, int &
 
 // this method needs to check cache first
 // if address doesn't exist in cache, we need to load from memory and possibly evict a line from cache
- std::string Cache::readMemory(int address, int pipelineStage, bool isVector, bool cacheEnabled){
-     if (!cacheEnabled) {
-         int line, index, offset, tag;
-         decodeAddress(address, line, index, offset, tag);
+std::string Cache::readMemory(int address, int pipelineStage, bool isVector, bool cacheEnabled){
+    if (!cacheEnabled) {
+        int line, index, offset, tag;
+        decodeAddress(address, line, index, offset, tag);
 
-         if (this->currentlyServicing == 0) {
-             this->dramDelay = 3;
-             this->currentlyServicing = pipelineStage;
-             return "Wait";
-         }
-         else if (this->currentlyServicing == pipelineStage && this->dramDelay != 0) {
-             this->dramDelay -= 1;
-             return "Wait";
-         }
-         else {
-             this->currentlyServicing = 0;
-             if (!isVector) {
-                 return "Done: " + std::to_string(this->memory->dram[line][offset]);
-             } else {
-                 std::string result = "Done: ";
-                 for (int i = 0; i < 4; i++) {
-                     result += std::to_string(this->memory->dram[line][i]);
-                     if (i < 3) result += ", ";
-                 }
-                 return result;
-             }
-         }
-     }
+        if (this->currentlyServicing == 0) {
+            this->dramDelay = 3;
+            this->currentlyServicing = pipelineStage;
+            return "Wait";
+        }
+        else if (this->currentlyServicing == pipelineStage && this->dramDelay != 0) {
+            this->dramDelay -= 1;
+            return "Wait";
+        }
+        else {
+            this->currentlyServicing = 0;
+            if (!isVector) {
+                return "Done: " + std::to_string(this->memory->dram[line][offset]);
+            } else {
+                std::string result = "Done: ";
+                for (int i = 0; i < 4; i++) {
+                    result += std::to_string(this->memory->dram[line][i]);
+                    if (i < 3) result += ", ";
+                }
+                return result;
+            }
+        }
+    }
+
+
+    // Map out values
+    int line, index, offset, tag;
+    decodeAddress(address, line, index, offset, tag);
+
+    // Cache hit: If valid data found in cache, 0 delay, return value directly
+    if (this->cache_memory[index][3] == 1 && this->cache_memory[index][0] == tag) {
+        // this->dramDelay = 0;
+        // this->currentlyServicing = 0;
+        std::cout << "Cache Hit!" << std::endl;
+        if(!isVector){
+            return "Done: " + std::to_string(this->cache_memory[index][4 + offset]);
+        }
+        else{
+            // we will enforce 4-word alignment of vectors in pipeline.cpp
+            std::string result = "Done: ";
+            for (int i = 0; i < 4; i++) {
+                result += std::to_string(this->cache_memory[index][4 + i]);
+                if (i < 3) result += ", ";
+            }
+            return result;
+        }
+    }
 
     // Currently servicing another pipeline stage
     if(this->currentlyServicing != 0 && this->currentlyServicing != pipelineStage) {
         return "Wait: memory is currently servicing another pipeline stage";
     }
-    else {
 
-        // Map out values
-        int line, index, offset, tag;
-        decodeAddress(address, line, index, offset, tag);
-
-        // Cache hit: If valid data found in cache, 0 delay, return value directly
-        if (this->cache_memory[index][3] == 1 && this->cache_memory[index][0] == tag) {
-            this->dramDelay = 0;
-            this->currentlyServicing = 0;
-            std::cout << "Cache Hit!" << std::endl;
-            if(!isVector){
-                return "Done: " + std::to_string(this->cache_memory[index][4 + offset]);
-            }
-            else{
-                // we will enforce 4-word alignment of vectors in pipeline.cpp
-                std::string result = "Done: ";
-                for (int i = 0; i < 4; i++) {
-                    result += std::to_string(this->cache_memory[index][4 + i]);
-                    if (i < 3) result += ", ";
-                }
-                return result;
-            }
-        }
-
-        //Currently servicing no pipeline stage -> service requested pipeline stage
-        if(this->currentlyServicing == 0){
-            this->dramDelay = 3;
-            this->currentlyServicing=pipelineStage;
-            std::cout << "Cache miss. Starting new access cycle... Wait" << std::endl;
-            return "Wait";
-        }
-
-        // No valid memory found in cache, load from memory and direct eviction from cache
-        // Remember 3 tick delay
-        else if (this->currentlyServicing == pipelineStage && this->dramDelay != 0) {
-            this->dramDelay -= 1;
-            std::cout << "Cache miss, loading from memory... Wait" << std::endl;
-            return "Wait";
-        }
-
-        //Delay has expired for requested pipeline stage (i.e., dramClock=0)
-        else {
-            // Update value in cache with value from memory (Don't forget tag, idx, valid, dirty)
-            this->cache_memory[index][0] = tag;
-            this->cache_memory[index][2] = 0; // Dirty bit
-            this->cache_memory[index][3] = 1; // Valid bit
-            // Update all 4 blocks in cache
-            for (int i = 0; i < 4; i ++) {
-                this->cache_memory[index][4 + i] = this->memory->dram[line][i];
-            }
-            this->currentlyServicing = 0;
-
-            // Return result (same logic as cache hit)
-            if (!isVector) {
-                return "Done: " + std::to_string(this->cache_memory[index][4 + offset]);
-            }
-            else {
-                std::string result = "Done: ";
-                for (int i = 0; i < 4; i++) {
-                    result += std::to_string(this->cache_memory[index][4 + i]);
-                    if (i < 3) result += ", ";
-                }
-                return result;
-            }
-
-        }
+    //Currently servicing no pipeline stage -> service requested pipeline stage
+    if(this->currentlyServicing == 0){
+        this->dramDelay = 3;
+        this->currentlyServicing=pipelineStage;
+        std::cout << "Cache miss. Starting new access cycle... Wait" << std::endl;
+        return "Wait";
     }
+
+    // No valid memory found in cache, load from memory and direct eviction from cache
+    // Remember 3 tick delay
+    else if (this->currentlyServicing == pipelineStage && this->dramDelay != 0) {
+        this->dramDelay -= 1;
+        std::cout << "Cache miss, loading from memory... Wait" << std::endl;
+        return "Wait";
+    }
+
+    //Delay has expired for requested pipeline stage (i.e., dramClock=0)
+    else {
+        // Update value in cache with value from memory (Don't forget tag, idx, valid, dirty)
+        this->cache_memory[index][0] = tag;
+        this->cache_memory[index][2] = 0; // Dirty bit
+        this->cache_memory[index][3] = 1; // Valid bit
+        // Update all 4 blocks in cache
+        for (int i = 0; i < 4; i ++) {
+            this->cache_memory[index][4 + i] = this->memory->dram[line][i];
+        }
+        this->currentlyServicing = 0;
+
+        // Return result (same logic as cache hit)
+        if (!isVector) {
+            return "Done: " + std::to_string(this->cache_memory[index][4 + offset]);
+        }
+        else {
+            std::string result = "Done: ";
+            for (int i = 0; i < 4; i++) {
+                result += std::to_string(this->cache_memory[index][4 + i]);
+                if (i < 3) result += ", ";
+            }
+            return result;
+        }
+
+    }
+
 }
 
 std::string Cache::writeMemory(int address, const int data[4], int pipelineStage, bool isVector, bool cacheEnabled){
     if (!cacheEnabled) {
+        if (this->currentlyServicing != 0 && this->currentlyServicing != pipelineStage) {
+            return "Wait: memory is currently servicing another pipeline stage";
+        }
         int line, index, offset, tag;
         decodeAddress(address, line, index, offset, tag);
 

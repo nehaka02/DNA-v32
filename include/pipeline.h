@@ -27,6 +27,7 @@ struct InstructionObject {
     bool is_blocked = false;
     bool is_squashed = false;
     bool halt_signal = false;
+    bool pend_incremented = false;
 };
 
 class Pipeline
