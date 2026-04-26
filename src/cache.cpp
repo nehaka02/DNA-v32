@@ -44,7 +44,9 @@ std::string Cache::readMemory(int address, int pipelineStage, bool isVector, boo
             return "Wait";
         }
         else {
-            this->currentlyServicing = 0;
+            if(this->currentlyServicing == pipelineStage){
+                this->currentlyServicing = 0;
+            }
             if (!isVector) {
                 return "Done: " + std::to_string(this->memory->dram[line][offset]);
             } else {
@@ -113,7 +115,9 @@ std::string Cache::readMemory(int address, int pipelineStage, bool isVector, boo
         for (int i = 0; i < 4; i ++) {
             this->cache_memory[index][4 + i] = this->memory->dram[line][i];
         }
-        this->currentlyServicing = 0;
+        if(this->currentlyServicing == pipelineStage){
+            this->currentlyServicing = 0;
+        }
 
         // Return result (same logic as cache hit)
         if (!isVector) {
@@ -134,11 +138,13 @@ std::string Cache::readMemory(int address, int pipelineStage, bool isVector, boo
 
 std::string Cache::writeMemory(int address, const int data[4], int pipelineStage, bool isVector, bool cacheEnabled){
     if (!cacheEnabled) {
+
         if (this->currentlyServicing != 0 && this->currentlyServicing != pipelineStage) {
             return "Wait: memory is currently servicing another pipeline stage";
         }
         int line, index, offset, tag;
         decodeAddress(address, line, index, offset, tag);
+
 
         if (this->currentlyServicing == 0) {
             this->dramDelay = 3;
@@ -150,7 +156,9 @@ std::string Cache::writeMemory(int address, const int data[4], int pipelineStage
             return "Wait";
         }
         else {
-            this->currentlyServicing = 0;
+            if(this->currentlyServicing == pipelineStage){
+                this->currentlyServicing = 0;
+            }
             if (!isVector) {
                 this->memory->dram[line][offset] = data[0];
             } else {
@@ -217,7 +225,9 @@ std::string Cache::writeMemory(int address, const int data[4], int pipelineStage
             }
 
             //Reset currentlyServicing variable to 0 to indicate no pipeline stage is being serviced
-            this->currentlyServicing=0;
+            if(this->currentlyServicing == pipelineStage){
+                this->currentlyServicing = 0;
+            }
             return "Done";
         }
     }
