@@ -181,6 +181,20 @@
        </column>
       </widget>
      </item>
+     <item>
+      <widget class="QTableWidget" name="pendingRegsTable">
+       <column>
+        <property name="text">
+         <string>Register</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Pending</string>
+        </property>
+       </column>
+      </widget>
+     </item>
     </layout>
    </widget>
   </widget>
@@ -245,13 +259,27 @@
   </widget>
   <widget class="QDockWidget" name="assemblerDock">
    <property name="windowTitle">
-    <string>Assembler</string>
+    <string>Flags + Assembler</string>
    </property>
    <attribute name="dockWidgetArea">
     <number>2</number>
    </attribute>
    <widget class="QWidget" name="assemblerContents">
     <layout class="QVBoxLayout" name="assemblerLayout">
+     <item>
+      <widget class="QTableWidget" name="flagsTable">
+       <column>
+        <property name="text">
+         <string>Flag</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Value</string>
+        </property>
+       </column>
+      </widget>
+     </item>
      <item>
       <widget class="QTextEdit" name="assemblyInput">
        <property name="placeholderText">

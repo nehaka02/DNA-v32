@@ -168,7 +168,6 @@ void single_clock_cycle(Pipeline* pipeline, bool cacheEnabled, bool pipelineEnab
         std::cout << "PRE-M: mInstr.is_blocked=" << pipeline->mInstr.is_blocked
                   << " eInstr.is_blocked=" << pipeline->eInstr.is_blocked << std::endl;
 
-        // Handles stage M
         if (is_mwaiting) {
             pipeline->mInstr.is_blocked = true;
             pipeline->eInstr.is_blocked = true;
@@ -221,8 +220,8 @@ void single_clock_cycle(Pipeline* pipeline, bool cacheEnabled, bool pipelineEnab
         }
         else { // if D is not blocked, then E is not blocked, forward instruction struct THIS IS NOT NECESSARILY TRUE!
             pipeline->fInstr.is_blocked = false; // Unblock F (F can block itself again if waiting)
-            pipeline->dInstr.is_blocked = false;
             if(!pipeline->eInstr.is_blocked){
+                pipeline->dInstr.is_blocked = false;
                 pipeline->eInstr = pipeline->dInstr;
             }
 

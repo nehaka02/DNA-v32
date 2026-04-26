@@ -48,6 +48,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(ui->loadFileBtn, &QPushButton::clicked,this, &MainWindow::onLoadAssemblyFile);
     connect(ui->assembleBtn, &QPushButton::clicked,this, &MainWindow::onAssemble);
+    ui->pendingRegsTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    ui->flagsTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    ui->flagsTable->setMaximumHeight(100);
 
     initSimulator();
 
@@ -277,6 +280,8 @@ void MainWindow::refresh()
     refreshCache();
     refreshMemory();
     refreshPipeline();
+    refreshPendingRegs();
+    refreshFlags();
     m_clockLabel->setText(QString("Clock: %1").arg(m_pipeline->global_clock));
 }
 
@@ -344,22 +349,18 @@ void MainWindow::refreshPipeline()
     for (int i = 0; i < 5; i++) {
         const auto& instr = *stages[i];
         QString text;
+        text = QString::fromStdString(m_pipeline->instrToString(instr));
         QColor  color;
 
         if (instr.is_squashed) {
-            text  = "SQUASHED";
             color = Qt::red;
         } else if (instr.is_stalled) {
-            text  = "BUBBLE";
             color = Qt::gray;
         } else if (instr.is_blocked) {
-            text  = QString("BLOCKED op=%1").arg(instr.opcode);
             color = Qt::yellow;
         } else if (instr.bin_instr == -1) {
-            text  = "EMPTY";
             color = Qt::white;
         } else {
-            text  = QString("op=%1 type=%2").arg(instr.opcode).arg(instr.type_code);
             color = Qt::green;
         }
 
@@ -369,6 +370,42 @@ void MainWindow::refreshPipeline()
         ui->pipelineTable->setItem(i, 0, item);
     }
     ui->pipelineTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+}
+
+void MainWindow::refreshPendingRegs()
+{
+    std::cout << "refreshPendingRegs called, rowCount=" << ui->pendingRegsTable->rowCount() << std::endl;
+    ui->pendingRegsTable->setRowCount(16);
+    for (int i = 0; i < 16; i++) {
+        ui->pendingRegsTable->setItem(i, 0, new QTableWidgetItem(QString("r%1").arg(i)));
+        QTableWidgetItem* valItem = new QTableWidgetItem(QString::number(pendRegs.r[i]));
+        // Highlight non-zero pending counts in yellow
+        if (pendRegs.r[i] != 0)
+            valItem->setBackground(Qt::yellow);
+        ui->pendingRegsTable->setItem(i, 1, valItem);
+    }
+}
+
+void MainWindow::refreshFlags()
+{
+    int CR = intRegs.r[14];
+    int N = (CR >> 0) & 1;
+    int Z = (CR >> 1) & 1;
+    int V = (CR >> 2) & 1;
+
+    ui->flagsTable->setRowCount(3);
+    ui->flagsTable->setItem(0, 0, new QTableWidgetItem("N (Negative)"));
+    ui->flagsTable->setItem(0, 1, new QTableWidgetItem(QString::number(N)));
+    ui->flagsTable->setItem(1, 0, new QTableWidgetItem("Z (Zero)"));
+    ui->flagsTable->setItem(1, 1, new QTableWidgetItem(QString::number(Z)));
+    ui->flagsTable->setItem(2, 0, new QTableWidgetItem("V (Overflow)"));
+    ui->flagsTable->setItem(2, 1, new QTableWidgetItem(QString::number(V)));
+
+    // Highlight set flags in green
+    for (int i = 0; i < 3; i++) {
+        if (ui->flagsTable->item(i, 1)->text() == "1")
+            ui->flagsTable->item(i, 1)->setBackground(Qt::green);
+    }
 }
 
 void MainWindow::showEvent(QShowEvent* event)

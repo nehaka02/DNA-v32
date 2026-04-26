@@ -68,7 +68,7 @@ bool Pipeline::decode(){
     //     return false; // Do nothing for bubbles, and don't stall
     // }
 
-    if(this->dInstr.is_squashed || this->dInstr.is_stalled || this->dInstr.bin_instr == -1 ||this->dInstr.address == -2){
+    if(this->dInstr.is_squashed || this->dInstr.is_stalled || this->dInstr.bin_instr == -1){
         return false;
     }
 
@@ -185,38 +185,43 @@ bool Pipeline::decode(){
             break;
         }
 
-        // Branching
         case 1:{
             int opcode = (bin >> 26) & 0b1111;
             this->dInstr.opcode = opcode;
 
-            //everything besides BX instruction
+            // Unconditional B and conditional branches
             if(opcode >= 0 && opcode <= 7){
-                std::cout << "BRANCH DECODE: opcode=" << opcode
-                          << " pendRegs.r[14]=" << pendRegs.r[14] << std::endl;
-                if(pendRegs.r[14] != 0){
-                    return true;
-                }
-                int offset =  bin & 0x3FFFFFF;
-                this->dInstr.branch_offset = helper_unsigned_to_signed(offset, 26);
-
-                if(opcode == 7) { // LR is pending
-                    if (!this->dInstr.pend_incremented) {
-                        pendRegs.r[12]++;
-                        this->dInstr.pend_incremented = true;
+                // Conditional branches must wait for flags
+                if(opcode >= 1 && opcode <= 6){
+                    if(pendRegs.r[14] != 0){
+                        return true;
                     }
                 }
+                int offset = bin & 0x3FFFFFF;
+                this->dInstr.branch_offset = helper_unsigned_to_signed(offset, 26);
 
+                if (!this->dInstr.pend_incremented) {
+                    pendRegs.r[13]++;
+                    if(opcode == 7) pendRegs.r[12]++; // BL also sets LR
+                    this->dInstr.pend_incremented = true;
+                }
                 return false;
             }
-            if(opcode == 8) { // BX
+
+            // BX - jumps to address in register
+            if(opcode == 8){
                 int src = (bin >> 22) & 0b1111;
+                if(pendRegs.r[src] != 0){
+                    return true;
+                }
                 this->dInstr.src1v[0] = intRegs.r[src];
+                if (!this->dInstr.pend_incremented) {
+                    pendRegs.r[13]++;
+                    this->dInstr.pend_incremented = true;
+                }
+                return false;
             }
-            if (!this->dInstr.pend_incremented) {
-                pendRegs.r[13]++;
-                this->dInstr.pend_incremented = true;
-            }
+
             break;
         }
 
@@ -372,7 +377,7 @@ bool Pipeline::decode(){
 
 void Pipeline::execute(){
 
-    if(this->eInstr.is_squashed || this->eInstr.is_stalled || this->eInstr.is_blocked || this->eInstr.bin_instr == -1 || this->eInstr.address == -2){
+    if(this->eInstr.is_squashed || this->eInstr.is_stalled || this->eInstr.is_blocked || this->eInstr.bin_instr == -1){
         return;
     }
 
@@ -457,7 +462,7 @@ void Pipeline::execute(){
 }
 
 bool Pipeline::memory_access(bool cacheEnabled){
-    if(this->mInstr.is_squashed || this->mInstr.is_stalled || this->mInstr.bin_instr == -1 || this->mInstr.bin_instr == -2){
+    if(this->mInstr.is_squashed || this->mInstr.is_stalled || this->mInstr.bin_instr == -1){
         return false;
     }
     switch(this->mInstr.type_code){
@@ -589,7 +594,7 @@ bool Pipeline::memory_access(bool cacheEnabled){
 }
 
 void Pipeline::write_back(){
-    if(this->wInstr.is_squashed || this->wInstr.is_stalled || this->wInstr.is_blocked || this->wInstr.bin_instr == -1 || this->wInstr.address == -2){
+    if(this->wInstr.is_squashed || this->wInstr.is_stalled || this->wInstr.is_blocked || this->wInstr.bin_instr == -1 ){
         return;
     }
     
@@ -683,10 +688,11 @@ void Pipeline::write_back(){
                     << " addr+1=" << (addr+1)
                     << " squash=" << (new_pc != addr+1) << std::endl;
             
-            intRegs.r[13] = new_pc;
+            // intRegs.r[13] = new_pc;
             pendRegs.r[13]--;
             
             if(new_pc != addr + 1){
+                intRegs.r[13] = new_pc;
                 squashed = true;
                 std::cout << "DEBUG: squash set!" << std::endl;
             }
@@ -779,14 +785,12 @@ int Pipeline::branch_helper(int addr) {
     }
 
     if(branch){
+        intRegs.r[14] = 0;
         return addr + this->wInstr.branch_offset;
     }
-
-    std::cout << "BLE: CR=" << intRegs.r[14]
-              << " N=" << N << " Z=" << Z
-              << " branch=" << branch << std::endl;
-
-    return intRegs.r[13];
+    intRegs.r[14] = 0;
+    // return intRegs.r[13];
+    return addr+1;
 }
 
 void Pipeline::print_state(){
@@ -831,4 +835,60 @@ int Pipeline::helper_unsigned_to_signed(int val, int bits){
         val |= ~((1 << bits) - 1);
     }
     return val;
+}
+
+std::string Pipeline::instrToString(const InstructionObject& instr) {
+    if (instr.is_squashed) return "SQUASHED";
+    if (instr.is_stalled)  return "BUBBLE";
+    if (instr.is_blocked)  return "BLOCKED";
+    if (instr.bin_instr == -1) return "EMPTY";
+
+    std::string name = "?";
+    if (instr.type_code == 0) {
+        switch(instr.opcode) {
+        case 0:  name="ADD";  break; case 1:  name="SUB";  break;
+        case 2:  name="DIV";  break; case 3:  name="MUL";  break;
+        case 4:  name="MOD";  break; case 5:  name="ASR";  break;
+        case 6:  name="ASL";  break; case 7:  name="LSR";  break;
+        case 8:  name="LSL";  break; case 9:  name="AND";  break;
+        case 10: name="OR";   break; case 11: name="XOR";  break;
+        case 15: name="ADDI"; break; case 16: name="SUBI"; break;
+        case 17: name="MULI"; break; case 18: name="ASRI"; break;
+        case 19: name="ASLI"; break; case 20: name="ANDI"; break;
+        case 21: name="ORI";  break; case 22: name="XORI"; break;
+        case 23: name="DIVI"; break; case 24: name="MODI"; break;
+        case 25: name="LSRI"; break; case 26: name="LSLI"; break;
+        case 27: name="CMP";  break; case 30: name="CMPI"; break;
+        default: name="ALU?"; break;
+        }
+    } else if (instr.type_code == 1) {
+        switch(instr.opcode) {
+        case 0: name="B";   break; case 1: name="BEQ"; break;
+        case 2: name="BNE"; break; case 3: name="BLT"; break;
+        case 4: name="BLE"; break; case 5: name="BGT"; break;
+        case 6: name="BGE"; break; case 7: name="BL";  break;
+        case 8: name="BX";  break; default: name="BR?"; break;
+        }
+    } else if (instr.type_code == 2) {
+        switch(instr.opcode) {
+        case 0: name="NOT";  break; case 1: name="LD";   break;
+        case 2: name="STR";  break; case 3: name="VLD";  break;
+        case 4: name="VSTR"; break; case 5: name="HALT"; break;
+        case 6: name="LDB";  break; case 7: name="STRB"; break;
+        case 8: name="LDI";  break; default: name="MSC?"; break;
+        }
+    }
+
+    // Build register info string
+    std::string regs = "";
+    if (instr.destv[0] != 0 || instr.src1v[0] != 0 || instr.src2v[0] != 0) {
+        regs += " d=" + std::to_string(instr.destv[0]);
+        regs += " s1=" + std::to_string(instr.src1v[0]);
+        if (instr.src2v[0] != 0)
+            regs += " s2=" + std::to_string(instr.src2v[0]);
+        if (instr.immediate != -1)
+            regs += " imm=" + std::to_string(instr.immediate);
+    }
+
+    return name + " addr=" + std::to_string(instr.address) + regs;
 }
