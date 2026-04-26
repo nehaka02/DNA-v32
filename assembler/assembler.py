@@ -18,6 +18,8 @@ class Assembler:
             # if empty line or comment, continue
             if not line or line.startswith("#"):
                 continue
+
+            line = line.split('#')[0].strip()
             # if line is a label add to symbol table (assume labels are structured as label:)
             # label is everything before : in the line
             if ":" in line:
@@ -106,7 +108,10 @@ class Assembler:
                 if ":" in line:
                     continue
 
-                tokens = line.split()
+                # Remove comments on the same line as the instruction
+                line = line.split('#')[0].strip()
+                #tokens = line.split(), old, new can handle commas
+                tokens = line.replace(',', ' ').split()
                 # if valid instruction and not a label
                 operation = tokens[0].upper()
                 type_code = mnemonic_table[operation][0]
