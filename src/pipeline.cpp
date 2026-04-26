@@ -93,7 +93,8 @@ bool Pipeline::decode(){
                 int dest = (bin >> 21) & 0b1111;
                 int src1 = (bin >> 17) & 0b1111;
                 int src2 = (bin >> 13) & 0b1111;
-                if (pendRegs.r[src1] != 0 || pendRegs.r[src2] != 0) {
+                if (!this->dInstr.pend_incremented && (pendRegs.r[src1] != 0 || pendRegs.r[src2] != 0)) {
+                    // If pending reg was not incremented before and it's already in pending, then block stage and wait
                     return true;
                 }
                 //this->dInstr.destv.push_back(dest);
@@ -119,7 +120,7 @@ bool Pipeline::decode(){
                 int dest = (bin >> 21) & 0b1111;
                 int src1 = (bin >> 17) & 0b1111;
                 int immediate = bin & 0x1FFFF; // 17 ones
-                if (pendRegs.r[src1] != 0) {
+                if (!this->dInstr.pend_incremented && pendRegs.r[src1] != 0) {
                     this->dInstr.is_blocked = true;
                     return true;
                 }
@@ -168,7 +169,7 @@ bool Pipeline::decode(){
             if(opcode == 30){
                 int src1 = (bin >> 21) & 0b1111;
                 int immediate = (bin & 0x1FFFFF); // 21 ones
-                if(pendRegs.r[src1] != 0 ) {
+                if(pendRegs.r[src1] != 0) {
                     this->dInstr.is_blocked = true;
                     return true;
                 }
@@ -234,7 +235,7 @@ bool Pipeline::decode(){
             if(opcode == 0 || opcode == 1 ){
                 int dest = (bin >> 22) & 0b1111;
                 int src = (bin >> 18) & 0b1111;
-                if (pendRegs.r[src] != 0) {
+                if (!this->dInstr.pend_incremented && pendRegs.r[src] != 0) {
                     this->dInstr.is_blocked = true;
                     return true;
                 }
@@ -316,7 +317,7 @@ bool Pipeline::decode(){
                 int base = (bin >> 18) & 0b1111; // this will go in src1 field of instruction object (base is a register!)
                 int offset = (bin & 0x3FFFF); // this will go in immediate field of instruction object
                                               // 18 ones
-                if (pendRegs.r[base] != 0) {
+                if (!this->dInstr.pend_incremented && pendRegs.r[base] != 0) {
                     this->dInstr.is_blocked = true;
                     return true;
                 }
@@ -445,6 +446,7 @@ void Pipeline::execute(){
                     break;
                 case 6: // LDB
                     this->eInstr.result[0] = this->eInstr.src1v[0] + this->eInstr.immediate;
+                    break;
                 case 7: // STRB
                     this->eInstr.result[0] = this->eInstr.src2v[0] + this->eInstr.immediate;
                     break;

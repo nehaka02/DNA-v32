@@ -183,7 +183,8 @@ void MainWindow::onStep()
               << " halt=" << m_pipeline->displayW.halt_signal
               << " bin=" << m_pipeline->displayW.bin_instr << std::endl;
 
-    if(m_pipeline->displayW.halt_signal) {
+    if(m_pipeline->displayW.halt_signal && !m_pipeline->displayW.is_squashed) {
+        // If it's a squashed halt, ignore and keep machine active
         m_machineActive = false;
         std::cout << "HALT encountered." << std::endl;
     }
@@ -254,7 +255,7 @@ void MainWindow::runLoop()
         //     std::cout << "HALT encountered." << std::endl;
         //     break;
         // }
-        if (m_pipeline->displayW.halt_signal) {
+        if (m_pipeline->displayW.halt_signal && !m_pipeline->displayW.is_squashed) {
             m_machineActive = false;
             std::cout << "HALT encountered." << std::endl;
             break;
