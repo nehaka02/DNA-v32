@@ -59,7 +59,7 @@ private:
     void refreshMemory();
     void refreshCache();
     void refreshPipeline();
-    void refreshPendingRegs();
+    //void refreshPendingRegs();
     void refreshFlags();
     void showEvent(QShowEvent* event) override;
 
