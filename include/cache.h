@@ -6,6 +6,9 @@
 
 class Cache
 {
+#ifdef TESTING
+    friend class PipelineTest;
+#endif
 public:
 
     //cache has a pointer to dram

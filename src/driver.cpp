@@ -326,11 +326,3 @@ void single_clock_cycle(Pipeline* pipeline, bool cacheEnabled, bool pipelineEnab
         }
     }
 }
-
-
-
-
-
-
-
-

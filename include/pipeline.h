@@ -32,6 +32,11 @@ struct InstructionObject {
 
 class Pipeline
 {
+
+#ifdef TESTING
+    friend class PipelineTest;
+#endif
+
 public:
 
     InstructionObject fInstr;
