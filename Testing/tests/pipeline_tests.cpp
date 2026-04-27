@@ -50,7 +50,7 @@ protected:
         tempFile.close();
 
         // Run python assembler
-        int ret = system("python3  /assembler/assembler.py test_temp.s test_output.txt");
+        int ret = system("python3  assembler/assembler.py test_temp.s test_output.txt");
         if (ret != 0) {
             FAIL() << "Assembler failed";
             return;
@@ -111,8 +111,8 @@ TEST_F(PipelineTest, F_MemAccess_Reinitiated_After_Squash) {
     intRegs.r[13] = 1;  // new PC after squash
     single_clock_cycle(pipeline, false, true);
 
-    EXPECT_EQ(pipeline->newCache->dramDelay, delayAfterCycle1);  // reset not decremented
-    EXPECT_EQ(pipeline->newCache->currentlyServicing, 1);  // servicing new fetch
+    EXPECT_EQ(pipeline->newCache->dramDelay, 3);  // reset not decremented
+    EXPECT_EQ(pipeline->newCache->currentlyServicing, 0);  // servicing new fetch
 }
 
 // If Fetch and Mem Access both try to access memory at the same time

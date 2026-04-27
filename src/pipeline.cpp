@@ -482,6 +482,8 @@ bool Pipeline::memory_access(bool cacheEnabled){
                     if (readValue.rfind("Done:", 0) == 0) { // starts with "Done:"
                         this->mInstr.result[0] =static_cast<int>(stoul(readValue.substr(6)));
                         newCache->currentlyServicing = 0;
+                        // FIXME
+                        this->mInstr.is_blocked = false;
                         return false;
                     }
                     else{
@@ -498,6 +500,8 @@ bool Pipeline::memory_access(bool cacheEnabled){
                     if (readValue.rfind("Done:", 0) == 0) { // starts with "Done:"
                         this->mInstr.result[0] =static_cast<int>(stoul(readValue.substr(6)));
                         newCache->currentlyServicing = 0;
+                        // FIXME
+                        this->mInstr.is_blocked = false;
                         return false;
                     }
                     else{
@@ -512,6 +516,8 @@ bool Pipeline::memory_access(bool cacheEnabled){
                     std::string status = this->newCache->writeMemory(this->mInstr.destv[0], this->mInstr.src1v, 4, false, cacheEnabled);
                     if (status.rfind("Done", 0) == 0) { // starts with "Done"
                         newCache->currentlyServicing = 0;
+                        // FIXME
+                        this->mInstr.is_blocked = false;
                         return false;
                     }
                     else{
@@ -525,6 +531,8 @@ bool Pipeline::memory_access(bool cacheEnabled){
                     std::string status = this->newCache->writeMemory(this->mInstr.result[0], this->mInstr.src1v, 4, false, cacheEnabled);
                     if (status.rfind("Done", 0) == 0) { // starts with "Done"
                         newCache->currentlyServicing = 0;
+                        // FIXME
+                        this->mInstr.is_blocked = false;
                         return false;
                     }
                     else{
@@ -545,6 +553,8 @@ bool Pipeline::memory_access(bool cacheEnabled){
                     std::string status = this->newCache->writeMemory((this->mInstr.destv[0])%4, this->mInstr.src1v, 4, true, cacheEnabled);
                     if (status.rfind("Done", 0) == 0) { // starts with "Done"
                         newCache->currentlyServicing = 0;
+                        // FIXME
+                        this->mInstr.is_blocked = false;
                         return false;
                     }
                     else{
@@ -577,6 +587,9 @@ bool Pipeline::memory_access(bool cacheEnabled){
                             this->mInstr.result[i++] = std::stoi(token);
                         }
 
+                        // FIXME
+                        this->mInstr.is_blocked = false;
+
                         // Now result contains vector
                         return false;
                     }
@@ -590,6 +603,8 @@ bool Pipeline::memory_access(bool cacheEnabled){
             break;
 
         default:
+            // FIXME
+            this->mInstr.is_blocked = false;
             return false;
     }
     return false;
