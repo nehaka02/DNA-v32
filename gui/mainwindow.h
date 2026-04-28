@@ -17,6 +17,8 @@ namespace Ui { class MainWindow; }
 
 extern Registers::IntegerRegs intRegs;
 extern Registers::PendIntegerRegs pendRegs;
+extern Registers::VectorRegs vectorRegs;
+extern Registers::PendVectorRegs pendVectorRegs;
 
 class MainWindow : public QMainWindow
 {
@@ -60,7 +62,7 @@ private:
     void refreshMemory();
     void refreshCache();
     void refreshPipeline();
-    void refreshPendingRegs();
+    //void refreshPendingRegs();
     void refreshFlags();
     void showEvent(QShowEvent* event) override;
 

@@ -163,3 +163,22 @@ is_fwaiting=0 is_dwaiting=0 is_mwaiting=0
 
 
 POST-FORWARD SQUASH FLAGS: F=0 D=0 E=0 M=1 W=1
+
+
+
+
+// Testing Vector load
+LDI r0, 10
+LDI r1, 20
+LDI r2, 30
+LDI r3, 40
+LDI r5, 36
+STR r5, r0
+STRB R1, R5, 1
+STRB R2, R5, 2
+STRB R3, R5, 3
+VLD V0, R5
+HALT
+HALT
+HALT
+HALT

@@ -4,7 +4,7 @@
 #include "parseInput.h"
 #include <QTableWidgetItem>
 #include <QColor>
-#include <fstream>
+//#include <fstream>
 #include <sstream>
 #include <cstring>
 #include <iostream>
@@ -48,7 +48,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(ui->loadFileBtn, &QPushButton::clicked,this, &MainWindow::onLoadAssemblyFile);
     connect(ui->assembleBtn, &QPushButton::clicked,this, &MainWindow::onAssemble);
-    ui->pendingRegsTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    //ui->pendingRegsTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->flagsTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->flagsTable->setMaximumHeight(100);
 
@@ -285,7 +285,7 @@ void MainWindow::refresh()
     refreshCache();
     refreshMemory();
     refreshPipeline();
-    refreshPendingRegs();
+    //refreshPendingRegs();
     refreshFlags();
 
     m_clockLabel->setText(QString("Clock: %1").arg(m_pipeline->global_clock));
@@ -301,10 +301,42 @@ void MainWindow::refresh()
 void MainWindow::refreshRegisters()
 {
     ui->IntRegisterTable->setRowCount(16);
+    // Added later
+    ui->IntRegisterTable->setColumnCount(3);
+    ui->IntRegisterTable->setHorizontalHeaderLabels({"Register", "Value", "Pending"});
+
     for (int i = 0; i < 16; i++) {
         ui->IntRegisterTable->setItem(i, 0, new QTableWidgetItem(QString("r%1").arg(i)));
         ui->IntRegisterTable->setItem(i, 1, new QTableWidgetItem(QString::number(intRegs.r[i])));
+
+        // Added for pending reg column
+        QTableWidgetItem* pendItem = new QTableWidgetItem(QString::number(pendRegs.r[i]));
+        if (pendRegs.r[i] != 0)
+            pendItem->setBackground(Qt::yellow);
+        ui->IntRegisterTable->setItem(i, 2, pendItem);
+
     }
+    ui->IntRegisterTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    ui->VecRegisterTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+
+
+    // Add pending column to vector register table
+    ui->VecRegisterTable->setRowCount(16);
+    ui->VecRegisterTable->setColumnCount(6);  // adjust based on your current column count
+    ui->VecRegisterTable->setHorizontalHeaderLabels({"Register", "v0", "v1", "v2", "v3", "Pending"});
+
+    for (int i = 0; i < 16; i++) {
+        ui->VecRegisterTable->setItem(i, 0, new QTableWidgetItem(QString("q%1").arg(i)));
+        for (int j = 0; j < 4; j++) {
+            ui->VecRegisterTable->setItem(i, j + 1, new QTableWidgetItem(QString::number(vectorRegs.q[i][j])));
+        }
+
+        QTableWidgetItem* pendItem = new QTableWidgetItem(QString::number(pendVectorRegs.q[i]));
+        if (pendVectorRegs.q[i] != 0)
+            pendItem->setBackground(Qt::yellow);
+        ui->VecRegisterTable->setItem(i, 5, pendItem);
+    }
+
     ui->IntRegisterTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->VecRegisterTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 }
@@ -385,19 +417,19 @@ void MainWindow::refreshPipeline()
     ui->pipelineTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 }
 
-void MainWindow::refreshPendingRegs()
-{
-    std::cout << "refreshPendingRegs called, rowCount=" << ui->pendingRegsTable->rowCount() << std::endl;
-    ui->pendingRegsTable->setRowCount(16);
-    for (int i = 0; i < 16; i++) {
-        ui->pendingRegsTable->setItem(i, 0, new QTableWidgetItem(QString("r%1").arg(i)));
-        QTableWidgetItem* valItem = new QTableWidgetItem(QString::number(pendRegs.r[i]));
-        // Highlight non-zero pending counts in yellow
-        if (pendRegs.r[i] != 0)
-            valItem->setBackground(Qt::yellow);
-        ui->pendingRegsTable->setItem(i, 1, valItem);
-    }
-}
+// void MainWindow::refreshPendingRegs()
+// {
+//     std::cout << "refreshPendingRegs called, rowCount=" << ui->pendingRegsTable->rowCount() << std::endl;
+//     ui->pendingRegsTable->setRowCount(16);
+//     for (int i = 0; i < 16; i++) {
+//         ui->pendingRegsTable->setItem(i, 0, new QTableWidgetItem(QString("r%1").arg(i)));
+//         QTableWidgetItem* valItem = new QTableWidgetItem(QString::number(pendRegs.r[i]));
+//         // Highlight non-zero pending counts in yellow
+//         if (pendRegs.r[i] != 0)
+//             valItem->setBackground(Qt::yellow);
+//         ui->pendingRegsTable->setItem(i, 1, valItem);
+//     }
+// }
 
 void MainWindow::refreshFlags()
 {

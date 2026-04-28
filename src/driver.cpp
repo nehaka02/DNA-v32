@@ -1,6 +1,7 @@
 #include "driver.h"
 #include "pipeline.h"
 #include "registers.h"
+#include "cache.h"
 #include <iostream>
 
 extern Registers::IntegerRegs intRegs;
@@ -140,6 +141,8 @@ void single_clock_cycle(Pipeline* pipeline, bool cacheEnabled, bool pipelineEnab
 
 
             pipeline->fInstr.is_squashed=true;
+            pipeline->newCache->currentlyServicing = 0;
+            pipeline->newCache->dramDelay = 3;
 
             pipeline->dInstr.is_squashed=true;
             pipeline->dInstr.is_blocked=false;
@@ -326,11 +329,3 @@ void single_clock_cycle(Pipeline* pipeline, bool cacheEnabled, bool pipelineEnab
         }
     }
 }
-
-
-
-
-
-
-
-

@@ -1,6 +1,5 @@
 #ifndef PIPELINE_H
 #define PIPELINE_H
-#include <vector>
 #include <string>
 #include "cache.h"
 
@@ -32,6 +31,11 @@ struct InstructionObject {
 
 class Pipeline
 {
+
+#ifdef TESTING
+    friend class PipelineTest;
+#endif
+
 public:
 
     InstructionObject fInstr;

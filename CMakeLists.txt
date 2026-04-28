@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.16)
 
 project(DNA-v32 LANGUAGES CXX)
 
+enable_testing()
+add_test(NAME pipeline_tests COMMAND pipeline_tests)
+
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -51,4 +54,26 @@ configure_file(
     ${PROJECT_SOURCE_DIR}/demos/demo_commands2.txt
     ${CMAKE_CURRENT_BINARY_DIR}/demo_commands2.txt
     COPYONLY
+)
+
+find_package(GTest REQUIRED)
+
+add_executable(pipeline_tests
+    Testing/tests/pipeline_tests.cpp
+    src/pipeline.cpp
+    src/cache.cpp
+    src/memory.cpp
+    src/driver.cpp
+    src/parseInput.cpp
+)
+
+target_include_directories(pipeline_tests PRIVATE
+    ${PROJECT_SOURCE_DIR}/include
+)
+
+target_compile_definitions(pipeline_tests PRIVATE TESTING)
+
+target_link_libraries(pipeline_tests PRIVATE
+    GTest::GTest
+    GTest::Main
 )

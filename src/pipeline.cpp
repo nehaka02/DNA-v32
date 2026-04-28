@@ -104,6 +104,9 @@ bool Pipeline::decode(){
 
                 if (!this->dInstr.pend_incremented) {
                     pendRegs.r[dest]++;
+                    if (opcode == 0 || opcode == 1 || opcode == 3) {
+                        pendRegs.r[14]++;
+                    }
                     this->dInstr.pend_incremented = true;
                 }
                 return false;
@@ -111,8 +114,33 @@ bool Pipeline::decode(){
             }
             // vector instructions
             if(opcode == 12 || opcode == 13 || opcode == 14){
-                // TODO
-                break;
+                int vlen = ((bin >> 23) & 0b11) + 1;
+                int dest = (bin >> 19) & 0b1111;
+                int src1 = (bin >> 15) & 0b1111;
+                int src2 = (bin >> 11) & 0b1111;
+
+                if (!this->dInstr.pend_incremented && (pendVectorRegs.q[src1] != 0 || pendVectorRegs.q[src2] != 0)) {
+                    // If pending reg was not incremented before and it's already in pending, then block stage and wait
+                    return true;
+                }
+
+                this->dInstr.destv[0] = dest;
+                this->dInstr.vlen = vlen;
+
+                // Get vector register values
+                for (int i = 0; i < vlen; i++){
+                    this->dInstr.src1v[i] = vectorRegs.q[src1][i];
+                    this->dInstr.src2v[i] = vectorRegs.q[src2][i];
+
+                }
+
+                // Set pending registers
+                if (!this->dInstr.pend_incremented) {
+                    pendVectorRegs.q[dest]++;
+                    pendRegs.r[15]++;
+                    this->dInstr.pend_incremented = true;
+                }
+                return false;
 
             }
             // immediate ops (excluding CMPI)
@@ -132,6 +160,9 @@ bool Pipeline::decode(){
 
                 if (!this->dInstr.pend_incremented) {
                     pendRegs.r[dest]++;
+                    if (opcode == 15 || opcode == 16 || opcode == 17) {  // ADDI, SUBI, MULI
+                        pendRegs.r[14]++;
+                    }
                     this->dInstr.pend_incremented = true;
                 }
                 return false;
@@ -156,14 +187,58 @@ bool Pipeline::decode(){
             }
             // VEQ
             if(opcode == 28){
-                // TODO
-                break;
+                int vlen = ((bin >> 23) & 0b11) + 1;
+                int src1 = (bin >> 19) & 0b1111;
+                int src2 = (bin >> 15) & 0b1111;
+                if(pendVectorRegs.q[src1]!= 0 || pendVectorRegs.q[src2] != 0) {
+                    this->dInstr.is_blocked = true;
+                    return true;
+                }
+
+                this->dInstr.vlen = vlen;
+
+                // Get vector register values
+                for (int i = 0; i < vlen; i++){
+                    this->dInstr.src1v[i] = vectorRegs.q[src1][i];
+                    this->dInstr.src2v[i] = vectorRegs.q[src2][i];
+                }
+
+                // Set pending register, VCR = R15
+                if (!this->dInstr.pend_incremented) {
+                    pendRegs.r[15]++;
+                    this->dInstr.pend_incremented = true;
+                }
+
+                return false;
 
             }
             // VSUM
             if(opcode == 29){
-                // TODO
-                break;
+                int vlen = ((bin >> 23) & 0b11) + 1;
+                int src1 = (bin >> 19) & 0b1111;
+                int dest = (bin >> 15) & 0b1111;
+
+                if(pendVectorRegs.q[src1]!= 0) {
+                    this->dInstr.is_blocked = true;
+                    return true;
+                }
+
+                this->dInstr.vlen = vlen;
+                this->dInstr.destv[0] = dest;
+
+                // Get vector register values
+                for (int i = 0; i < vlen; i++){
+                    this->dInstr.src1v[i] = vectorRegs.q[src1][i];
+                }
+
+                // Set pending register, which is dest a normal register
+                if (!this->dInstr.pend_incremented) {
+                    pendRegs.r[dest]++;
+                    this->dInstr.pend_incremented = true;
+                }
+
+                return false;
+
             }
             // CMPI
             if(opcode == 30){
@@ -396,10 +471,15 @@ void Pipeline::execute(){
                 std::cout << "CMP EX: src1v[0]=" << this->eInstr.src1v[0]
                           << " src2v[0]=" << this->eInstr.src2v[0] << std::endl;
             }
-            // vector instructions
-            if(opcode == 12 || opcode == 13 || opcode == 14){
-                // TODO
-                break;
+            // vector instructions: VADD, VSUB, VMUL, and VEQ
+            if(opcode == 12 || opcode == 13 || opcode == 14 || opcode == 28){
+                for (int i = 0; i < this->eInstr.vlen; i++) {
+                    this->eInstr.result[i] = ALU_helper(
+                        this->eInstr.opcode,
+                        this->eInstr.src1v[i],
+                        this->eInstr.src2v[i]);
+                }
+
             }
             // scalar immediates
             if(opcode >= 15 && opcode <= 26 || opcode == 30){
@@ -409,15 +489,13 @@ void Pipeline::execute(){
                     this->eInstr.immediate
                     );
             }
-
-            // VEQ and VSUM
-            if(opcode == 28){
-                // TODO
-                break;
-            }
+            //VSUM
             if(opcode == 29){
-                // TODO
-                break;
+                this->eInstr.result[0] = 0;
+                for (int i = 0; i < this->eInstr.vlen; i++) {
+                    this->eInstr.result[0] += this->eInstr.src1v[i];
+                }
+
             }
 
             break;
@@ -482,6 +560,7 @@ bool Pipeline::memory_access(bool cacheEnabled){
                     if (readValue.rfind("Done:", 0) == 0) { // starts with "Done:"
                         this->mInstr.result[0] =static_cast<int>(stoul(readValue.substr(6)));
                         newCache->currentlyServicing = 0;
+                        this->mInstr.is_blocked = false;
                         return false;
                     }
                     else{
@@ -498,6 +577,7 @@ bool Pipeline::memory_access(bool cacheEnabled){
                     if (readValue.rfind("Done:", 0) == 0) { // starts with "Done:"
                         this->mInstr.result[0] =static_cast<int>(stoul(readValue.substr(6)));
                         newCache->currentlyServicing = 0;
+                        this->mInstr.is_blocked = false;
                         return false;
                     }
                     else{
@@ -512,6 +592,7 @@ bool Pipeline::memory_access(bool cacheEnabled){
                     std::string status = this->newCache->writeMemory(this->mInstr.destv[0], this->mInstr.src1v, 4, false, cacheEnabled);
                     if (status.rfind("Done", 0) == 0) { // starts with "Done"
                         newCache->currentlyServicing = 0;
+                        this->mInstr.is_blocked = false;
                         return false;
                     }
                     else{
@@ -525,6 +606,7 @@ bool Pipeline::memory_access(bool cacheEnabled){
                     std::string status = this->newCache->writeMemory(this->mInstr.result[0], this->mInstr.src1v, 4, false, cacheEnabled);
                     if (status.rfind("Done", 0) == 0) { // starts with "Done"
                         newCache->currentlyServicing = 0;
+                        this->mInstr.is_blocked = false;
                         return false;
                     }
                     else{
@@ -542,9 +624,14 @@ bool Pipeline::memory_access(bool cacheEnabled){
                     break;
                 // Enforced 4-word alignment for vector loads and stores!
                 case 4:{ // VSTR
-                    std::string status = this->newCache->writeMemory((this->mInstr.destv[0])%4, this->mInstr.src1v, 4, true, cacheEnabled);
+                    //std::string status = this->newCache->writeMemory((this->mInstr.destv[0])%4, this->mInstr.src1v, 4, true, cacheEnabled);
+
+                    // Fixed 4 word alignment (?)
+                    int aligned_addr = (this->mInstr.result[0] / 4) * 4;  // round down to 4-word boundary
+                    std::string status = this->newCache->writeMemory(aligned_addr, this->mInstr.src1v, 4, true, cacheEnabled);
                     if (status.rfind("Done", 0) == 0) { // starts with "Done"
                         newCache->currentlyServicing = 0;
+                        this->mInstr.is_blocked = false;
                         return false;
                     }
                     else{
@@ -556,7 +643,11 @@ bool Pipeline::memory_access(bool cacheEnabled){
                 }
                 case 3:{ // VLD
                     // result holds the address, go fetch the value
-                    std::string readValue = this->newCache->readMemory((this->mInstr.result[0])%4, 4, true, cacheEnabled);
+                    //std::string readValue = this->newCache->readMemory((this->mInstr.result[0])%4, 4, true, cacheEnabled);
+
+                    // Fixed 4 word alignment (?)
+                    int aligned_addr = (this->mInstr.result[0] / 4) * 4;  // round down to 4-word boundary
+                    std::string readValue = this->newCache->readMemory(aligned_addr, 4, true, cacheEnabled);
 
                     if (readValue.rfind("Done:", 0) == 0) {
                         newCache->currentlyServicing = 0;
@@ -577,6 +668,8 @@ bool Pipeline::memory_access(bool cacheEnabled){
                             this->mInstr.result[i++] = std::stoi(token);
                         }
 
+                        this->mInstr.is_blocked = false;
+
                         // Now result contains vector
                         return false;
                     }
@@ -590,6 +683,7 @@ bool Pipeline::memory_access(bool cacheEnabled){
             break;
 
         default:
+            this->mInstr.is_blocked = false;
             return false;
     }
     return false;
@@ -607,14 +701,21 @@ void Pipeline::write_back(){
             // CMP and CMPI update Condition Register instead of writing to a register
             if(opcode == 27 || opcode == 30){
                 int result = this->wInstr.result[0];
+                int src1 = this->wInstr.src1v[0];
+                int src2 = this->wInstr.src2v[0];
                 int N = (result < 0) ? 1 : 0;  // Negative
                 int Z = (result == 0) ? 1 : 0; // Zero
-                int V = (result > this->wInstr.src1v[0]) ? 1 : 0;  // Overflow
-                intRegs.r[14] = (V << 2) | (Z << 1) | N;   // Order: 00000.....V Z B
+                int V = 0;  // Overflow Underflow for substraction
+
+                if ((src1 >= 0 && src2 < 0  && result < 0)  ||  // overflow (subtraction)
+                    (src1 < 0  && src2 >= 0 && result >= 0))     // underflow (subtraction)
+                    V = 1;
+
+                intRegs.r[14] = (V << 2) | (Z << 1) | N;   // Order: 00000.....V Z N
                 pendRegs.r[14]--;
-                std::cout << "CMP WB: src1=" << this->wInstr.src1v[0]
-                          << " src2=" << this->wInstr.src2v[0]
-                          << " result=" << this->wInstr.result[0] << std::endl;
+                // std::cout << "CMP WB: src1=" << this->wInstr.src1v[0]
+                //           << " src2=" << this->wInstr.src2v[0]
+                //           << " result=" << this->wInstr.result[0] << std::endl;
                 break;
             }
 
@@ -623,22 +724,106 @@ void Pipeline::write_back(){
             if((opcode >= 0 && opcode <= 11) || (opcode >= 15 && opcode <= 26)){
                 intRegs.r[this->wInstr.destv[0]] = this->wInstr.result[0];
                 pendRegs.r[this->wInstr.destv[0]]--;
+                // Set flags for ones that needs it
+                if (opcode == 0 || opcode == 1 || opcode == 3 || opcode == 15 || opcode == 16 || opcode == 17) {
+                    int result = this->wInstr.result[0];
+                    int src1 = this->wInstr.src1v[0];
+                    int src2 = this->wInstr.src2v[0];
+                    int N = (result < 0) ? 1 : 0;  // Negative
+                    int Z = (result == 0) ? 1 : 0; // Zero
+
+                    // This is set through ADD, SUB, MUL, ADDI, SUBI, MULI
+                    int V = 0;  // Overflow and underflow
+                    // Overflow: pos + pos = neg, or neg + neg = pos
+                    // Underflow: pos - neg = neg, or neg - pos = pos
+                    // If ADD, ADDI,
+                    if (opcode == 0 || opcode == 15) {
+                        if ((src1 >= 0 && src2 >= 0 && result < 0) || (src1 < 0  && src2 < 0  && result >= 0)) {
+                            V = 1;
+                        }
+                    }
+                    //else if MUL, MULI
+                    else if (opcode == 3 || opcode == 17) {
+                        // Multiplication is 64 bits to check if result goes over 32 bits
+                        long long full_result = (long long)src1 * (long long)src2;
+                        V = (full_result > INT32_MAX || full_result < INT32_MIN) ? 1 : 0;
+                    }
+                    // Else if SUB, SUBI
+                    else if (opcode == 1 || opcode == 16) {
+                        if ((src1 >= 0 && src2 < 0  && result < 0) || (src1 < 0  && src2 >= 0 && result >= 0)) {
+                            V = 1;
+                        }
+                    }
+
+                    intRegs.r[14] = (V << 2) | (Z << 1) | N;   // Order: 00000.....V Z N
+                    pendRegs.r[14]--;
+                }
+
                 break;
             }
-
+            // VADD, VSUB, VMUL
             if(opcode == 12 || opcode == 13 || opcode == 14){
-                // TODO
-                break;
+                // Write back to vector register
+                for (int i = 0; i < this->wInstr.vlen; i++ ) {
+                    vectorRegs.q[this->wInstr.destv[0]][i] = this->wInstr.result[i];
+                }
+                pendVectorRegs.q[this->wInstr.destv[0]]--;
 
+                // Update VCR if needed (field V for overflow/underflow, Z for 0)
+                int result;
+                int V = 0, Z = 0;
+                bool all_zeros = true;
+                for (int i = 0; i < this->wInstr.vlen; i++) {
+                    result = this->wInstr.result[i];
+                    int src1 = this->wInstr.src1v[i];
+                    int src2 = this->wInstr.src2v[i];
+                    if (result != 0){
+                        all_zeros = false;
+                    }
+                    if ((opcode == 12) && V != 1){
+                        if ((src1 >= 0 && src2 >= 0 && result < 0) || (src1 < 0  && src2 < 0  && result >= 0)) {
+                            V = 1;
+                        }
+                    }
+                    else if (opcode == 13 && V != 1) {
+                        if ((src1 >= 0 && src2 < 0  && result < 0) || (src1 < 0  && src2 >= 0 && result >= 0)) {
+                            V = 1;
+                        }
+                    }
+                    else if (opcode == 14 && V != 1) {
+                        long long full_result = (long long)src1 * (long long)src2;
+                        if (full_result > INT32_MAX || full_result < INT32_MIN) {
+                            V = 1;
+                        }
+                    }
+                }
+                if (all_zeros) Z = 1;
+                intRegs.r[15] = (V << 1)|Z;  // Format V, Z
+                pendRegs.r[15]--;
+                break;
             }
+            // VEQ
             if(opcode == 28){
-                // TODO
+                int result;
+                int Z = 0;
+                bool all_zeros = true;
+                for (int i = 0; i < this->wInstr.vlen; i++) {
+                    result = this->wInstr.result[i];
+                    if (result != 0){
+                        all_zeros = false;
+                    }
+                }
+                if (all_zeros) Z = 1;
+                intRegs.r[15] = Z;
+                pendRegs.r[15]--;
                 break;
 
             }
             // VSUM
             if(opcode == 29){
-                // TODO
+                int dest = this->wInstr.destv[0];
+                intRegs.r[dest] = this->wInstr.result[0];
+                pendRegs.r[dest]--;
                 break;
             }
 
@@ -718,18 +903,21 @@ int Pipeline::ALU_helper(int opcode, int a, int b) {
 
     switch(opcode){
 
-        case 0: return a + b;                                          // ADD
-        case 1: return a - b;                                          // SUB
-        case 2: return (b == 0) ? 0xFFFFFFFF : a / b;                  // DIV
-        case 3: return a * b;                                          // MUL
-        case 4: return (b == 0) ? a : a % b;                           // MOD
-        case 5: return a >> b;                                         // ASR
-        case 6: return a << b;                                         // ASL
-        case 7: return (unsigned int)a >> b;                           // LSR
-        case 8: return a << b;                                         // LSL
-        case 9: return a & b;                                          // AND
+        case 0: return a + b;                                           // ADD
+        case 1: return a - b;                                           // SUB
+        case 2: return (b == 0) ? 0xFFFFFFFF : a / b;                   // DIV
+        case 3: return a * b;                                           // MUL
+        case 4: return (b == 0) ? a : a % b;                            // MOD
+        case 5: return a >> b;                                          // ASR
+        case 6: return a << b;                                          // ASL
+        case 7: return (unsigned int)a >> b;                            // LSR
+        case 8: return a << b;                                          // LSL
+        case 9: return a & b;                                           // AND
         case 10: return a | b;                                          // OR
         case 11: return a ^ b;                                          // XOR
+        case 12: return a + b;                                          // VADD
+        case 13: return a - b;                                          // VSUB
+        case 14: return a * b;                                          // VMUL
         case 15: return a + b;                                          // ADDI
         case 16: return a - b;                                          // SUBI
         case 17: return a * b;                                          // MULI
@@ -743,6 +931,7 @@ int Pipeline::ALU_helper(int opcode, int a, int b) {
         case 21: return a | b;                                          // ORI
         case 22: return a ^ b;                                          // XORI
         case 27: return a - b;                                          // CMP
+        case 28: return a - b;                                          // VEQ
         case 30: return a - b;                                          // CMPI
         default:      return 0;
 

@@ -30,72 +30,6 @@ class Assembler:
             else:
                 location += 1
 
-    # def second_pass(self, lines):
-    #     location = 0
-    #     for line in lines:
-    #         line = line.strip()
-    #         # if valid instruction and not a label
-    #         if ":" not in line:
-    #             tokens = line.split(" ")
-    #             operation = tokens[0]
-    #             type_code = mnemonic_table[operation][0]
-    #             opcode = mnemonic_table[operation][1]
-    #             instr_struct = mnemonic_table[operation][2]
-
-    #             binary = 0
-    #             if instr_struct == "scalar":
-    #                 # dest(reg) src1(reg) src2(reg)
-    #                 dest, src1, src2 = tokens[1], tokens[2], tokens[3]
-    #                 binary = self.__encode_scalar(type_code, opcode, dest, src1, src2)
-
-    #             elif instr_struct == "immediate":
-    #                 # dest(reg) src1(reg) immediate
-    #                 dest, src1, immediate = tokens[1], tokens[2], tokens[3]
-    #                 binary = self.__encode_immediate(type_code, opcode, dest, src1, immediate)
-
-    #             elif instr_struct == "vector":
-    #                 # length(immediate) dest(reg) src1(reg) src2(reg)
-    #                 length, dest, src1, src2 = tokens[1], tokens[2], tokens[3], tokens[4]
-    #                 binary = self.__encode_vector(type_code, opcode, length, dest, src1, src2)
-
-    #             elif instr_struct == "vector_misc":
-    #                 length, reg1, reg2 = tokens[1], tokens[2], tokens[3]
-    #                 binary = self.__encode_vector_misc(type_code, opcode, length, reg1, reg2)
-
-    #             elif instr_struct == "cmp":
-    #                 src1, src2 = tokens[1], tokens[2]
-    #                 binary = self.__encode_cmp(type_code, opcode, src1, src2)
-
-    #             elif instr_struct == "cmpi":
-    #                 src1, immediate = tokens[1], tokens[2]
-    #                 binary = self.__encode_cmpi(type_code, opcode, src1, immediate)
-
-    #             elif instr_struct == "branch":
-    #                 offset = tokens[1]
-    #                 binary = self.__encode_branch(type_code, opcode, offset, location)
-
-    #             elif instr_struct == "bx":
-    #                 src = tokens[1]
-    #                 binary = self.__encode_bx(type_code, opcode, src)
-
-    #             elif instr_struct == "misc":
-    #                 dest, src = tokens[1], tokens[2]
-    #                 binary = self.__encode_misc(type_code, opcode, dest, src)
-
-    #             elif instr_struct == "halt":
-    #                 binary = self.__encode_halt(type_code, opcode)
-
-    #             elif instr_struct == "base":
-    #                 reg1, reg2, offset = tokens[1], tokens[2], tokens[3]
-    #                 binary = self.__encode_base(type_code, opcode, reg1, reg2, offset)
-
-    #             elif instr_struct == "ldi":
-    #                 dest, immediate = tokens[1], tokens[2]
-    #                 binary = self.__encode_ldi(type_code, opcode, dest, immediate)
-
-    #             self.machine_code.append(binary)
-    #             location += 1
-
     def second_pass(self, lines):
             location = 0
             for line in lines:
@@ -217,6 +151,7 @@ class Assembler:
 
 
     def __encode_vector(self, type_code, opcode, v_len, dest, src1, src2):
+        v_len = int(v_len, 0) - 1
         dest = self.__reg_to_num(dest)
         src1 = self.__reg_to_num(src1)
         src2 = self.__reg_to_num(src2)
@@ -224,7 +159,7 @@ class Assembler:
 
 
     def __encode_vector_misc(self, type_code, opcode, v_len, reg1, reg2):
-        v_len = int(v_len, 0)
+        v_len = int(v_len, 0) - 1
         reg1 = self.__reg_to_num(reg1)
         reg2 = self.__reg_to_num(reg2)
         return (type_code << 30) | (opcode << 25) | ((v_len & 0x3) << 23) | (reg1 << 19) | (reg2 << 15)
