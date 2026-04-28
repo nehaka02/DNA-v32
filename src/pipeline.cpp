@@ -627,7 +627,7 @@ bool Pipeline::memory_access(bool cacheEnabled){
                     //std::string status = this->newCache->writeMemory((this->mInstr.destv[0])%4, this->mInstr.src1v, 4, true, cacheEnabled);
 
                     // Fixed 4 word alignment (?)
-                    int aligned_addr = (this->mInstr.result[0] / 4) * 4;  // round down to 4-word boundary
+                    int aligned_addr = (this->mInstr.destv[0]  / 4) * 4;  // round down to 4-word boundary
                     std::string status = this->newCache->writeMemory(aligned_addr, this->mInstr.src1v, 4, true, cacheEnabled);
                     if (status.rfind("Done", 0) == 0) { // starts with "Done"
                         newCache->currentlyServicing = 0;

@@ -121,6 +121,10 @@ void MainWindow::initSimulator()
     for (int i = 0; i < 16; i++) {
         intRegs.r[i] = 0;
         pendRegs.r[i] = 0;
+        pendVectorRegs.q[i] = 0;
+        for (int j = 0; j < 4; j++) {
+            vectorRegs.q[i][j] = 0;
+        }
     }
 
     // FIXME
