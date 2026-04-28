@@ -114,7 +114,7 @@ bool Pipeline::decode(){
             }
             // vector instructions
             if(opcode == 12 || opcode == 13 || opcode == 14){
-                int vlen = (bin >> 23) & 0b11;
+                int vlen = ((bin >> 23) & 0b11) + 1;
                 int dest = (bin >> 19) & 0b1111;
                 int src1 = (bin >> 15) & 0b1111;
                 int src2 = (bin >> 11) & 0b1111;
@@ -187,7 +187,7 @@ bool Pipeline::decode(){
             }
             // VEQ
             if(opcode == 28){
-                int vlen = (bin >> 23) & 0b11;
+                int vlen = ((bin >> 23) & 0b11) + 1;
                 int src1 = (bin >> 19) & 0b1111;
                 int src2 = (bin >> 15) & 0b1111;
                 if(pendVectorRegs.q[src1]!= 0 || pendVectorRegs.q[src2] != 0) {
@@ -214,7 +214,7 @@ bool Pipeline::decode(){
             }
             // VSUM
             if(opcode == 29){
-                int vlen = (bin >> 23) & 0b11;
+                int vlen = ((bin >> 23) & 0b11) + 1;
                 int src1 = (bin >> 19) & 0b1111;
                 int dest = (bin >> 15) & 0b1111;
 

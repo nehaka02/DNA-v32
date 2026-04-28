@@ -151,7 +151,7 @@ class Assembler:
 
 
     def __encode_vector(self, type_code, opcode, v_len, dest, src1, src2):
-        v_len = int(v_len, 0)
+        v_len = int(v_len, 0) - 1
         dest = self.__reg_to_num(dest)
         src1 = self.__reg_to_num(src1)
         src2 = self.__reg_to_num(src2)
@@ -159,7 +159,7 @@ class Assembler:
 
 
     def __encode_vector_misc(self, type_code, opcode, v_len, reg1, reg2):
-        v_len = int(v_len, 0)
+        v_len = int(v_len, 0) - 1
         reg1 = self.__reg_to_num(reg1)
         reg2 = self.__reg_to_num(reg2)
         return (type_code << 30) | (opcode << 25) | ((v_len & 0x3) << 23) | (reg1 << 19) | (reg2 << 15)
