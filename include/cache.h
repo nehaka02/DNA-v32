@@ -18,6 +18,9 @@ public:
     int clock;
     bool cacheEnabled = true;
 
+    int cacheHits = 0;
+    int cacheAccesses = 0;
+
     Cache(Memory* memory);
     std::string writeMemory(int address, const int data[4], int pipelineStage, bool isVector, bool cacheEnabled);
     std::string readMemory(int address, int pipelineStage, bool isVector, bool cacheEnabled);

@@ -72,6 +72,10 @@ MainWindow::MainWindow(QWidget *parent)
     ui->memoryDock->deleteLater();
     ui->cacheDock->deleteLater();
 
+    m_cacheHitLabel = new QLabel("Hit Rate: N/A");
+    ui->toolBar->addSeparator();
+    ui->toolBar->addWidget(m_cacheHitLabel);
+
     // Four quadrant layout
     addDockWidget(Qt::TopDockWidgetArea,    ui->pipelineDock);
     addDockWidget(Qt::TopDockWidgetArea,    ui->registerDock);
@@ -283,7 +287,15 @@ void MainWindow::refresh()
     refreshPipeline();
     refreshPendingRegs();
     refreshFlags();
+
     m_clockLabel->setText(QString("Clock: %1").arg(m_pipeline->global_clock));
+
+    if (m_cache->cacheAccesses > 0) {
+        double hitRate = 100.0 * m_cache->cacheHits / m_cache->cacheAccesses;
+        m_cacheHitLabel->setText(QString("Hit Rate: %1%").arg(hitRate, 0, 'f', 1));
+    } else {
+        m_cacheHitLabel->setText("Hit Rate: N/A");
+    }
 }
 
 void MainWindow::refreshRegisters()

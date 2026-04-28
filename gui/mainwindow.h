@@ -51,6 +51,7 @@ private:
     QLabel* m_clockLabel = nullptr;
     bool cacheEnabled = true;
     bool pipelineEnabled = true;
+    QLabel* m_cacheHitLabel = nullptr;
 
     void initSimulator();
     void runLoop();

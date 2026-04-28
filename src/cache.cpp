@@ -69,6 +69,8 @@ std::string Cache::readMemory(int address, int pipelineStage, bool isVector, boo
     if (this->cache_memory[index][3] == 1 && this->cache_memory[index][0] == tag) {
         // this->dramDelay = 0;
         // this->currentlyServicing = 0;
+        this->cacheHits++;
+        this->cacheAccesses++;
         std::cout << "Cache Hit!" << std::endl;
         if(!isVector){
             return "Done: " + std::to_string(this->cache_memory[index][4 + offset]);
@@ -91,8 +93,10 @@ std::string Cache::readMemory(int address, int pipelineStage, bool isVector, boo
 
     //Currently servicing no pipeline stage -> service requested pipeline stage
     if(this->currentlyServicing == 0){
+        this->cacheAccesses++;
         this->dramDelay = 3;
         this->currentlyServicing=pipelineStage;
+        std::cout << "[READ] STARTING NEW" << std::endl;
         std::cout << "Cache miss. Starting new access cycle... Wait" << std::endl;
         return "Wait";
     }
@@ -102,6 +106,7 @@ std::string Cache::readMemory(int address, int pipelineStage, bool isVector, boo
     else if (this->currentlyServicing == pipelineStage && this->dramDelay != 0) {
         this->dramDelay -= 1;
         std::cout << "Cache miss, loading from memory... Wait" << std::endl;
+        std::cout << "[READ] ACCESSING MEMORY" << std::endl;
         return "Wait";
     }
 
@@ -145,7 +150,6 @@ std::string Cache::writeMemory(int address, const int data[4], int pipelineStage
         int line, index, offset, tag;
         decodeAddress(address, line, index, offset, tag);
 
-
         if (this->currentlyServicing == 0) {
             this->dramDelay = 3;
             this->currentlyServicing = pipelineStage;
@@ -176,6 +180,8 @@ std::string Cache::writeMemory(int address, const int data[4], int pipelineStage
         //Currently servicing no pipeline stage -> service requested pipeline stage
         //Do not decrement delay count on first attempt
         if(this->currentlyServicing == 0){
+            this->cacheAccesses++;
+            std::cout << "[WRITE] STARTING NEW" << std::endl;
             this->currentlyServicing=pipelineStage;
             this->dramDelay=3;
             std::cout << "Starting new access cycle... Wait" << std::endl;
@@ -184,6 +190,7 @@ std::string Cache::writeMemory(int address, const int data[4], int pipelineStage
         //Currently servicing requested pipeline stage but delay has not expired
         else if(this->currentlyServicing == pipelineStage && this->dramDelay!=0){
             this->dramDelay -= 1;
+            std::cout << "[WRITE] ACCESSING MEMORY" << std::endl;
             std::cout << "Writing to memory... Wait" << std::endl;
             return "Wait";
         }
@@ -196,6 +203,7 @@ std::string Cache::writeMemory(int address, const int data[4], int pipelineStage
             //write hit (write through)
             //must check valid bit
             if(this->cache_memory[index][0] == tag && this->cache_memory[index][3] == 1){
+                this->cacheHits++;
                 //set dirty bit to 0 and valid bit to 1
                 this->cache_memory[index][2] = 0;
                 this->cache_memory[index][3] = 1;
@@ -228,6 +236,7 @@ std::string Cache::writeMemory(int address, const int data[4], int pipelineStage
             if(this->currentlyServicing == pipelineStage){
                 this->currentlyServicing = 0;
             }
+            std::cout << "[WRITE] DONE" << std::endl;
             return "Done";
         }
     }
