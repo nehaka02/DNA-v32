@@ -64,6 +64,7 @@ private:
     void refreshPipeline();
     //void refreshPendingRegs();
     void refreshFlags();
+    void refreshVectorFlags();
     void showEvent(QShowEvent* event) override;
 
 };

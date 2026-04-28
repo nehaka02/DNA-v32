@@ -51,6 +51,8 @@ MainWindow::MainWindow(QWidget *parent)
     //ui->pendingRegsTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->flagsTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->flagsTable->setMaximumHeight(100);
+    ui->vcrFlagsTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    ui->vcrFlagsTable->setMaximumHeight(80);
 
     initSimulator();
 
@@ -72,6 +74,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->memoryDock->deleteLater();
     ui->cacheDock->deleteLater();
 
+    //Cache hit rate
     m_cacheHitLabel = new QLabel("Hit Rate: N/A");
     ui->toolBar->addSeparator();
     ui->toolBar->addWidget(m_cacheHitLabel);
@@ -91,8 +94,6 @@ MainWindow::MainWindow(QWidget *parent)
     // Lock docks in place
     ui->pipelineDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
     ui->registerDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
-    // ui->memoryDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
-    // ui->cacheDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
     ui->assemblerDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
 }
 
@@ -126,27 +127,6 @@ void MainWindow::initSimulator()
             vectorRegs.q[i][j] = 0;
         }
     }
-
-    // FIXME
-    // Also clear vector pending regs
-    // for (int i = 0; i < 8; i++) {
-    //     pendVectorRegs.q[i] = 0;
-    // }
-
-    // std::ifstream file("demos/demo_commands2.txt);
-    // if (!file.is_open()) {
-    //     std::cout << "Error: could not open file" << std::endl;
-    //     return;
-    // }
-
-    // std::string userInput;
-    // while (std::getline(file, userInput)) {
-    //     std::istringstream input(userInput);
-    //     std::vector<std::string> tokens;
-    //     std::string token;
-    //     while (input >> token) tokens.push_back(token);
-    //     if (!tokens.empty()) parseInput(tokens, m_cache);
-    // }
 
     QFile file(currentFilePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -454,6 +434,24 @@ void MainWindow::refreshFlags()
     for (int i = 0; i < 3; i++) {
         if (ui->flagsTable->item(i, 1)->text() == "1")
             ui->flagsTable->item(i, 1)->setBackground(Qt::green);
+    }
+}
+
+void MainWindow::refreshVectorFlags()
+{
+    int VCR = intRegs.r[15];
+    int Z = (VCR >> 0) & 1;
+    int V = (VCR >> 1) & 1;
+
+    ui->vcrFlagsTable->setRowCount(2);
+    ui->vcrFlagsTable->setItem(0, 0, new QTableWidgetItem("Z (Zero)"));
+    ui->vcrFlagsTable->setItem(0, 1, new QTableWidgetItem(QString::number(Z)));
+    ui->vcrFlagsTable->setItem(1, 0, new QTableWidgetItem("V (Overflow)"));
+    ui->vcrFlagsTable->setItem(1, 1, new QTableWidgetItem(QString::number(V)));
+
+    for (int i = 0; i < 2; i++) {
+        if (ui->vcrFlagsTable->item(i, 1)->text() == "1")
+            ui->vcrFlagsTable->item(i, 1)->setBackground(Qt::green);
     }
 }
 

@@ -43,62 +43,65 @@
    <widget class="QWidget" name="dockWidgetContents">
     <layout class="QVBoxLayout" name="verticalLayout_4">
      <item>
-      <widget class="QTableWidget" name="VecRegisterTable">
-       <attribute name="horizontalHeaderDefaultSectionSize">
-        <number>74</number>
-       </attribute>
-       <column>
-        <property name="text">
-         <string>Register</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>v1</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>v2</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>v3</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>v4</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>Pending</string>
-        </property>
-       </column>
-      </widget>
-     </item>
-     <item>
-      <widget class="QTableWidget" name="IntRegisterTable">
-       <attribute name="horizontalHeaderDefaultSectionSize">
-        <number>74</number>
-       </attribute>
-       <column>
-        <property name="text">
-         <string>Register</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>Value</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>Pending</string>
-        </property>
-       </column>
+      <widget class="QTabWidget" name="registerTabWidget">
+       <property name="currentIndex">
+        <number>0</number>
+       </property>
+       <widget class="QWidget" name="intRegTab">
+        <attribute name="title">
+         <string>Integer</string>
+        </attribute>
+        <layout class="QVBoxLayout">
+         <item>
+          <widget class="QTableWidget" name="IntRegisterTable">
+           <attribute name="horizontalHeaderDefaultSectionSize">
+            <number>74</number>
+           </attribute>
+           <column><property name="text"><string>Register</string></property></column>
+           <column><property name="text"><string>Value</string></property></column>
+           <column><property name="text"><string>Pending</string></property></column>
+          </widget>
+         </item>
+         <item>
+            <widget class="QTableWidget" name="flagsTable">
+             <property name="maximumHeight">
+              <number>100</number>
+             </property>
+             <column><property name="text"><string>Flag</string></property></column>
+             <column><property name="text"><string>Value</string></property></column>
+            </widget>
+           </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="vecRegTab">
+        <attribute name="title">
+         <string>Vector</string>
+        </attribute>
+        <layout class="QVBoxLayout">
+         <item>
+          <widget class="QTableWidget" name="VecRegisterTable">
+           <attribute name="horizontalHeaderDefaultSectionSize">
+            <number>74</number>
+           </attribute>
+           <column><property name="text"><string>Register</string></property></column>
+           <column><property name="text"><string>v0</string></property></column>
+           <column><property name="text"><string>v1</string></property></column>
+           <column><property name="text"><string>v2</string></property></column>
+           <column><property name="text"><string>v3</string></property></column>
+           <column><property name="text"><string>Pending</string></property></column>
+          </widget>
+         </item>
+         <item>
+            <widget class="QTableWidget" name="vcrFlagsTable">
+             <property name="maximumHeight">
+              <number>80</number>
+             </property>
+             <column><property name="text"><string>Flag</string></property></column>
+             <column><property name="text"><string>Value</string></property></column>
+            </widget>
+           </item>
+        </layout>
+       </widget>
       </widget>
      </item>
     </layout>
@@ -206,20 +209,6 @@
        </column>
       </widget>
      </item>
-     <!--<item>
-      <widget class="QTableWidget" name="pendingRegsTable">
-       <column>
-        <property name="text">
-         <string>Register</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>Pending</string>
-        </property>
-       </column>
-      </widget>
-     </item>-->
     </layout>
    </widget>
   </widget>
@@ -284,14 +273,14 @@
   </widget>
   <widget class="QDockWidget" name="assemblerDock">
    <property name="windowTitle">
-    <string>Flags + Assembler</string>
+    <string>Assembler</string>
    </property>
    <attribute name="dockWidgetArea">
     <number>2</number>
    </attribute>
    <widget class="QWidget" name="assemblerContents">
     <layout class="QVBoxLayout" name="assemblerLayout">
-     <item>
+    <!-- <item>
       <widget class="QTableWidget" name="flagsTable">
        <column>
         <property name="text">
@@ -304,7 +293,7 @@
         </property>
        </column>
       </widget>
-     </item>
+     </item>-->
      <item>
       <widget class="QTextEdit" name="assemblyInput">
        <property name="placeholderText">
