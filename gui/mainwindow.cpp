@@ -4,7 +4,7 @@
 #include "parseInput.h"
 #include <QTableWidgetItem>
 #include <QColor>
-#include <fstream>
+//#include <fstream>
 #include <sstream>
 #include <cstring>
 #include <iostream>
@@ -304,6 +304,27 @@ void MainWindow::refreshRegisters()
         ui->IntRegisterTable->setItem(i, 2, pendItem);
 
     }
+    ui->IntRegisterTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    ui->VecRegisterTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+
+
+    // Add pending column to vector register table
+    ui->VecRegisterTable->setRowCount(16);
+    ui->VecRegisterTable->setColumnCount(6);  // adjust based on your current column count
+    ui->VecRegisterTable->setHorizontalHeaderLabels({"Register", "v0", "v1", "v2", "v3", "Pending"});
+
+    for (int i = 0; i < 16; i++) {
+        ui->VecRegisterTable->setItem(i, 0, new QTableWidgetItem(QString("q%1").arg(i)));
+        for (int j = 0; j < 4; j++) {
+            ui->VecRegisterTable->setItem(i, j + 1, new QTableWidgetItem(QString::number(vectorRegs.q[i][j])));
+        }
+
+        QTableWidgetItem* pendItem = new QTableWidgetItem(QString::number(pendVectorRegs.q[i]));
+        if (pendVectorRegs.q[i] != 0)
+            pendItem->setBackground(Qt::yellow);
+        ui->VecRegisterTable->setItem(i, 5, pendItem);
+    }
+
     ui->IntRegisterTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->VecRegisterTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 }

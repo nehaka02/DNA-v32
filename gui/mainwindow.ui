@@ -54,7 +54,27 @@
        </column>
        <column>
         <property name="text">
-         <string>Value</string>
+         <string>v1</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>v2</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>v3</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>v4</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Pending</string>
         </property>
        </column>
       </widget>

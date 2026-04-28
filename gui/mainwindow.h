@@ -17,6 +17,8 @@ namespace Ui { class MainWindow; }
 
 extern Registers::IntegerRegs intRegs;
 extern Registers::PendIntegerRegs pendRegs;
+extern Registers::VectorRegs vectorRegs;
+extern Registers::PendVectorRegs pendVectorRegs;
 
 class MainWindow : public QMainWindow
 {

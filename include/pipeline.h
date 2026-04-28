@@ -1,6 +1,5 @@
 #ifndef PIPELINE_H
 #define PIPELINE_H
-#include <vector>
 #include <string>
 #include "cache.h"
 
