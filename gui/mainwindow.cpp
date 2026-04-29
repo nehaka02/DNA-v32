@@ -271,6 +271,7 @@ void MainWindow::refresh()
     refreshPipeline();
     //refreshPendingRegs();
     refreshFlags();
+    refreshVectorFlags();
 
     m_clockLabel->setText(QString("Clock: %1").arg(m_pipeline->global_clock));
 
@@ -343,10 +344,10 @@ void MainWindow::refreshCache()
 
 void MainWindow::refreshMemory()
 {
-    int linesToShow = 32;
+    int linesToShow = 128;
     ui->memoryTable->setRowCount(linesToShow);
     for (int i = 0; i < linesToShow; i++) {
-        ui->memoryTable->setItem(i, 0, new QTableWidgetItem(QString::number(i)));
+        ui->memoryTable->setItem(i, 0, new QTableWidgetItem(QString::number(i * 4)));
         ui->memoryTable->setItem(i, 1, new QTableWidgetItem(QString::number(m_cache->memory->dram[i][0])));
         ui->memoryTable->setItem(i, 2, new QTableWidgetItem(QString::number(m_cache->memory->dram[i][1])));
         ui->memoryTable->setItem(i, 3, new QTableWidgetItem(QString::number(m_cache->memory->dram[i][2])));
@@ -427,7 +428,7 @@ void MainWindow::refreshFlags()
     ui->flagsTable->setItem(0, 1, new QTableWidgetItem(QString::number(N)));
     ui->flagsTable->setItem(1, 0, new QTableWidgetItem("Z (Zero)"));
     ui->flagsTable->setItem(1, 1, new QTableWidgetItem(QString::number(Z)));
-    ui->flagsTable->setItem(2, 0, new QTableWidgetItem("V (Overflow)"));
+    ui->flagsTable->setItem(2, 0, new QTableWidgetItem("V (Overflow/Underflow)"));
     ui->flagsTable->setItem(2, 1, new QTableWidgetItem(QString::number(V)));
 
     // Highlight set flags in green
@@ -446,7 +447,7 @@ void MainWindow::refreshVectorFlags()
     ui->vcrFlagsTable->setRowCount(2);
     ui->vcrFlagsTable->setItem(0, 0, new QTableWidgetItem("Z (Zero)"));
     ui->vcrFlagsTable->setItem(0, 1, new QTableWidgetItem(QString::number(Z)));
-    ui->vcrFlagsTable->setItem(1, 0, new QTableWidgetItem("V (Overflow)"));
+    ui->vcrFlagsTable->setItem(1, 0, new QTableWidgetItem("V (Overflow/Underflow)"));
     ui->vcrFlagsTable->setItem(1, 1, new QTableWidgetItem(QString::number(V)));
 
     for (int i = 0; i < 2; i++) {

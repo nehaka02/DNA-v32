@@ -135,7 +135,12 @@
        </attribute>
        <column>
         <property name="text">
-         <string>Line</string>
+         <string>Address</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Offset 0</string>
         </property>
        </column>
        <column>
@@ -151,11 +156,6 @@
        <column>
         <property name="text">
          <string>Offset 3</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>Offset 4</string>
         </property>
        </column>
       </widget>

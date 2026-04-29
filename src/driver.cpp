@@ -119,6 +119,10 @@ void single_clock_cycle(Pipeline* pipeline, bool cacheEnabled, bool pipelineEnab
                     int op = instr.opcode;
                     if((op >= 0 && op <= 11) || (op >= 15 && op <= 26)){
                         pendRegs.r[instr.destv[0]]--;
+                        // Also undo r14 increment for flag-setting ops
+                        if (op == 0 || op == 1 || op == 3 || op == 15 || op == 16 || op == 17) {
+                            pendRegs.r[14]--;
+                        }
                     }
                     if(op == 27 || op == 30) pendRegs.r[14]--;  // CMP
                 }
