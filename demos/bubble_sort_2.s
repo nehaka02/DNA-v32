@@ -1,14 +1,51 @@
 bubble_sort:
+    LDI R2 9
+    LDI R3 10
+    LDI R4 4
+    LDI R5 7
+    LDI R6 8
+    LDI R7 2
     LDI R8 5
     LDI R9 6
     LDI R10 3
     LDI R11 1
-    LDI R0 32
-    LDI R1 4
-    STR R0 R8
-    STRB R9 R0 1
-    STRB R10 R0 2
-    STRB R11 R0 3
+    LDI R0 48
+    LDI R1 10
+    STR R0 R2
+    STRB R3 R0 1
+    STRB R4 R0 2
+    STRB R5 R0 3
+    STRB R6 R0 4
+    STRB R7 R0 5
+    STRB R8 R0 6
+    STRB R9 R0 7
+    STRB R10 R0 8
+    STRB R11 R0 9
+
+
+
+    # LDI R2 9
+    # LDI R3 10
+    # LDI R4 4
+    # LDI R5 7
+    # LDI R6 8
+    # LDI R7 2
+    # LDI R8 5
+    # LDI R9 6
+    # LDI R10 3
+    # LDI R11 1
+    # STRB R2 R0 10
+    # STRB R3 R0 11
+    # STRB R4 R0 12
+    # STRB R5 R0 13
+    # STRB R6 R0 14
+    # STRB R7 R0 15
+    # STRB R8 R0 16
+    # STRB R9 R0 17
+    # STRB R10 R0 18
+    # STRB R11 R0 19
+
+
     XORI R2 R1 0         # r2 = n
 
 outer_loop:

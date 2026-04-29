@@ -113,7 +113,7 @@ MainWindow::~MainWindow()
 void MainWindow::initSimulator()
 {
     // Save current delay
-    int savedDelay = m_dramDelay;
+    int savedDelay = m_cache ? m_cache->delay : 3;
 
     delete m_pipeline; m_pipeline = nullptr;
     delete m_cache;    m_cache    = nullptr;
@@ -121,6 +121,7 @@ void MainWindow::initSimulator()
 
     m_memory = new Memory();
     m_cache  = new Cache(m_memory);
+    m_cache->delay = savedDelay;
     m_cache->cacheEnabled = cacheEnabled;
 
     m_machineActive = true;
@@ -157,7 +158,9 @@ void MainWindow::initSimulator()
     m_pipeline = new Pipeline(m_cache);
     std::cout << "Simulator initialized." << std::endl;
 
-    m_cache->delay = savedDelay;
+    if (m_dramDelayLabel){
+        m_dramDelayLabel->setText(QString("DRAM Delay: %1").arg(savedDelay));
+    }
 }
 
 void MainWindow::onRun()
@@ -236,7 +239,6 @@ void MainWindow::onSetDramDelay()
         );
     if (ok) {
         m_cache->delay = delay;
-        m_dramDelay = delay;
         // Show current delay in toolbar
         m_dramDelayLabel->setText(QString("DRAM Delay: %1").arg(delay));
     }
@@ -257,8 +259,9 @@ void MainWindow::onTogglePipeline()
 void MainWindow::runLoop()
 {
     ui->actionToggleCache->setEnabled(false);
-    int i = 0;
-    while (m_machineActive && i < 10000000) {
+    long int i = 0;
+    // initially 10000000
+    while (m_machineActive && i < 100000000000) {
         single_clock_cycle(m_pipeline, cacheEnabled, pipelineEnabled);
         i++;
 
