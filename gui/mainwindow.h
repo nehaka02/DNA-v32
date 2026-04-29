@@ -34,6 +34,7 @@ private slots:
     void onReset();
     void onSetBreakpoint();
     void onClearBreakpoint();
+    void onSetDramDelay();
     void onToggleCache();
     void onTogglePipeline();
     void onLoadAssemblyFile();
@@ -50,6 +51,8 @@ private:
     /*int m_breakpoint = -1;*/ // -1 means no breakpoint
     QSet<int> m_breakpoints;
     QLabel* m_breakpointLabel = nullptr;
+    int m_dramDelay = 3; 
+    QLabel* m_dramDelayLabel = nullptr;
     QLabel* m_clockLabel = nullptr;
     bool cacheEnabled = true;
     bool pipelineEnabled = true;

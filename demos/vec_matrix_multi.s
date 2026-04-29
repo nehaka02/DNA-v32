@@ -1,4 +1,4 @@
-# Bench mark matrix multiply no vector
+# Bench mark matrix multiply with vector instructions
 # Matrix 1 = [[1, 2, 3, 4],
 #             [5, 6, 7, 8],
 #             [1, 2, 3, 4],

@@ -30,6 +30,7 @@
    <addaction name="actionReset"/>
    <addaction name="actionsetBreakpoint"/>
    <addaction name="actionclearBreakpoint"/>
+   <addaction name="actionSetDramDelay"/>
    <addaction name="actionToggleCache"/>
    <addaction name="actionTogglePipeline"/>
   </widget>
@@ -364,6 +365,14 @@
   <action name="actionclearBreakpoint">
    <property name="text">
     <string>Clear Breakpoint</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionSetDramDelay">
+   <property name="text">
+    <string>Set DRAM Delay</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>

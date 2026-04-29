@@ -17,7 +17,8 @@ public:
     Memory* memory;
 
     int currentlyServicing;
-    int dramDelay;
+    int dramDelay; // This is tracking the current delay depending on cycle and if access if needed
+    int delay; // This is the delay to access dram
     int clock;
     bool cacheEnabled = true;
 

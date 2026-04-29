@@ -33,6 +33,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->actionReset, &QAction::triggered, this, &MainWindow::onReset);
     connect(ui->actionsetBreakpoint, &QAction::triggered, this, &MainWindow::onSetBreakpoint);
     connect(ui->actionclearBreakpoint, &QAction::triggered, this, &MainWindow::onClearBreakpoint);
+    connect(ui->actionSetDramDelay, &QAction::triggered, this, &MainWindow::onSetDramDelay);
     connect(ui->actionToggleCache, &QAction::triggered, this, &MainWindow::onToggleCache);
     ui->actionToggleCache->setEnabled(true);
 
@@ -41,6 +42,10 @@ MainWindow::MainWindow(QWidget *parent)
 
     m_breakpointLabel = new QLabel("Breakpoint: none");
     ui->toolBar->addWidget(m_breakpointLabel);
+
+    m_dramDelayLabel = new QLabel("DRAM Delay: 3");
+    ui->toolBar->addSeparator();
+    ui->toolBar->addWidget(m_dramDelayLabel);
 
     m_clockLabel = new QLabel("Clock: 0");
     ui->toolBar->addSeparator();
@@ -107,6 +112,9 @@ MainWindow::~MainWindow()
 
 void MainWindow::initSimulator()
 {
+    // Save current delay
+    int savedDelay = m_dramDelay;
+
     delete m_pipeline; m_pipeline = nullptr;
     delete m_cache;    m_cache    = nullptr;
     delete m_memory;   m_memory   = nullptr;
@@ -148,6 +156,8 @@ void MainWindow::initSimulator()
 
     m_pipeline = new Pipeline(m_cache);
     std::cout << "Simulator initialized." << std::endl;
+
+    m_cache->delay = savedDelay;
 }
 
 void MainWindow::onRun()
@@ -216,7 +226,21 @@ void MainWindow::onClearBreakpoint()
     m_breakpoints.clear();
     m_breakpointLabel->setText("Breakpoints: none");
 }
-
+void MainWindow::onSetDramDelay()
+{
+    bool ok;
+    int delay = QInputDialog::getInt(
+        this, "Set DRAM Delay", "Enter DRAM delay (cycles):",
+        m_cache->delay,  // current value as default
+        0, 100, 1, &ok
+        );
+    if (ok) {
+        m_cache->delay = delay;
+        m_dramDelay = delay;
+        // Show current delay in toolbar
+        m_dramDelayLabel->setText(QString("DRAM Delay: %1").arg(delay));
+    }
+}
 void MainWindow::onToggleCache()
 {
     cacheEnabled = !cacheEnabled;
@@ -234,7 +258,7 @@ void MainWindow::runLoop()
 {
     ui->actionToggleCache->setEnabled(false);
     int i = 0;
-    while (m_machineActive && i < 10000) {
+    while (m_machineActive && i < 10000000) {
         single_clock_cycle(m_pipeline, cacheEnabled, pipelineEnabled);
         i++;
 
