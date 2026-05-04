@@ -48,22 +48,20 @@ class Assembler:
                 tokens = line.replace(',', ' ').split()
                 # if valid instruction and not a label
                 operation = tokens[0].upper()
-                type_code = mnemonic_table[operation][0]
-                opcode = mnemonic_table[operation][1]
-                instr_struct = mnemonic_table[operation][2]
-
-                binary = 0
+                binary = None
 
                 # Check if int only (FIXME) ADD CODE BLOCK HERE
+                try:
+                    binary = int(operation)
+                except ValueError:
+                    type_code = mnemonic_table[operation][0]
+                    opcode = mnemonic_table[operation][1]
+                    instr_struct = mnemonic_table[operation][2]
 
+                if binary is not None:
+                    binary = int(operation)
 
-
-
-
-
-
-
-                if instr_struct == "scalar":
+                elif instr_struct == "scalar":
                     # dest(reg) src1(reg) src2(reg)
                     dest, src1, src2 = tokens[1], tokens[2], tokens[3]
                     binary = self.__encode_scalar(type_code, opcode, dest, src1, src2)

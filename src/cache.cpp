@@ -13,7 +13,7 @@ Cache::Cache(Memory* memory) {
     this->delay = 3;
     // initializing cache to 0
 
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 16; i++) {
         for (int j = 0; j < 8; j++) {
             cache_memory[i][j] = 0;
         }

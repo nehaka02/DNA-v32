@@ -39,6 +39,7 @@ add_executable(DNA-v32
     gui/mainwindow.h
     gui/mainwindow.cpp
     gui/mainwindow.ui
+    demos/bubble_sort_80_elems.s
 )
 
 # target_link_libraries(DNA-v32 PRIVATE Qt${QT_VERSION_MAJOR}::Core)

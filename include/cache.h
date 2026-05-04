@@ -13,7 +13,7 @@ public:
 
     //cache has a pointer to dram
     //cache memory contains: tag, index, dirty, valid, 4 offsets
-    int cache_memory[8][8];
+    int cache_memory[16][8];
     Memory* memory;
 
     int currentlyServicing;

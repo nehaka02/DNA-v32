@@ -355,8 +355,8 @@ void MainWindow::refreshRegisters()
 
 void MainWindow::refreshCache()
 {
-    ui->cacheTable->setRowCount(8);
-    for (int i = 0; i < 8; i++) {
+    ui->cacheTable->setRowCount(16);
+    for (int i = 0; i < 16; i++) {
         ui->cacheTable->setItem(i, 0, new QTableWidgetItem(QString::number(i)));
         ui->cacheTable->setItem(i, 1, new QTableWidgetItem(QString::number(m_cache->cache_memory[i][0])));
         ui->cacheTable->setItem(i, 2, new QTableWidgetItem(QString::number(m_cache->cache_memory[i][2])));
