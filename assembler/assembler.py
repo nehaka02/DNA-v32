@@ -53,6 +53,16 @@ class Assembler:
                 instr_struct = mnemonic_table[operation][2]
 
                 binary = 0
+
+                # Check if int only (FIXME) ADD CODE BLOCK HERE
+
+
+
+
+
+
+
+
                 if instr_struct == "scalar":
                     # dest(reg) src1(reg) src2(reg)
                     dest, src1, src2 = tokens[1], tokens[2], tokens[3]

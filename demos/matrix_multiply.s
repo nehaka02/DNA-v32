@@ -132,4 +132,6 @@ END_I:
     halt
     halt
 
+# 6 x 6 or 8 x 8
+
 

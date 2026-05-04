@@ -101,3 +101,7 @@ done:
     HALT
 
 
+# Add data directive
+# 80 elements array
+# 64 words in cache, 16 line cache
+
