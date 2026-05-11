@@ -23,7 +23,7 @@
 
 
 # Vectorized Matrix multiply
-# A at address 80, BT at address 96, C at address 120
+# A at address 36, BT at address 84, C at address 140
 # r0 = base A, r1 = base BT, r2 = base C
 # r3 = i, r4 = j
 # r5 = addr of row i of A
