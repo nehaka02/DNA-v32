@@ -156,6 +156,12 @@ void MainWindow::initSimulator()
     }
 
     m_pipeline = new Pipeline(m_cache);
+
+    // Added later
+    // Reset cache stats after loading program (Maybe FIXME???)
+    m_cache->cacheAccesses = 0;
+    m_cache->cacheHits = 0;
+
     std::cout << "Simulator initialized." << std::endl;
 
     if (m_dramDelayLabel){
@@ -304,7 +310,11 @@ void MainWindow::refresh()
 
     if (m_cache->cacheAccesses > 0) {
         double hitRate = 100.0 * m_cache->cacheHits / m_cache->cacheAccesses;
-        m_cacheHitLabel->setText(QString("Hit Rate: %1%").arg(hitRate, 0, 'f', 1));
+        // m_cacheHitLabel->setText(QString("Hit Rate: %1%").arg(hitRate, 0, 'f', 1));
+        m_cacheHitLabel->setText(QString("Hit Rate: %1% (%2/%3)")
+                                     .arg(hitRate, 0, 'f', 1)
+                                     .arg(m_cache->cacheHits)
+                                     .arg(m_cache->cacheAccesses));  // shows hits/total
     } else {
         m_cacheHitLabel->setText("Hit Rate: N/A");
     }
@@ -629,7 +639,8 @@ void MainWindow::onAssemble()
     }
 
     outFile.close();
-
+    m_cache->cacheAccesses = 0;
+    m_cache->cacheHits = 0;
     ui->assembleStatus->setText("Assembled and loaded successfully.");
     refresh();
 

@@ -22,9 +22,9 @@ Cache::Cache(Memory* memory) {
 
 void Cache::decodeAddress(int address, int &line, int &index, int &offset, int &tag) {
     line   = (address / 4) % 8192;
-    index  = line % 8;
+    index  = line % 16;
     offset = address % 4;
-    tag    = line / 8;
+    tag    = line / 16;
 }
 
 // this method needs to check cache first
@@ -59,7 +59,11 @@ std::string Cache::readMemory(int address, int pipelineStage, bool isVector, boo
             }
         }
     }
-
+    // Moved the commented out block to up here instead
+    // Currently servicing another pipeline stage
+    if(this->currentlyServicing != 0 && this->currentlyServicing != pipelineStage) {
+        return "Wait: memory is currently servicing another pipeline stage";
+    }
 
     // Map out values
     int line, index, offset, tag;
@@ -86,10 +90,11 @@ std::string Cache::readMemory(int address, int pipelineStage, bool isVector, boo
         }
     }
 
-    // Currently servicing another pipeline stage
-    if(this->currentlyServicing != 0 && this->currentlyServicing != pipelineStage) {
-        return "Wait: memory is currently servicing another pipeline stage";
-    }
+    // Uhm why was this placed here before?
+    // // Currently servicing another pipeline stage
+    // if(this->currentlyServicing != 0 && this->currentlyServicing != pipelineStage) {
+    //     return "Wait: memory is currently servicing another pipeline stage";
+    // }
 
     //Currently servicing no pipeline stage -> service requested pipeline stage
     if(this->currentlyServicing == 0){
